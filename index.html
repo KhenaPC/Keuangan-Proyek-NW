@@ -235,6 +235,8 @@ input[type=checkbox]{accent-color:var(--brand)}
 .pasang>.lg-mark{width:26px;color:var(--accent);flex:none}.pasang .grow{display:flex;flex-direction:column;min-width:0}.pasang .small{color:var(--muted)}
 body.out .pasang{max-width:390px;margin:16px auto 0}
 @media (max-width:900px){.pasang{margin:12px 14px 0}}
+.foto-pilih{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}.foto-pilih img{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:none}
+.btn svg{flex:none}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -423,7 +425,8 @@ function vLogin(){return `<section class="panel login"><i class="lg-full" role="
     <span class="small muted">Password bisa diganti setelah masuk.</span>
   </form></section>`}
 
-const tombolInput=()=>S.ro?'':`<button class="btn pri" data-act="scan">Scan bukti transfer</button><button class="btn" data-act="tambah-trx">Tambah manual</button>`;
+const IK_CAM='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',IK_GAL='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>';
+const tombolInput=()=>S.ro?'':`<button class="btn pri" data-act="scan">Scan bukti / nota</button><button class="btn" data-act="tambah-trx">Tambah manual</button>`;
 
 function chartBulan(list){
   const by={};for(const t of list){const b=t.tanggal.slice(0,7);(by[b]=by[b]||{m:0,k:0})[t.jenis==='masuk'?'m':'k']+=t.nominal}
@@ -502,7 +505,7 @@ function vTransaksi(){
   ${list.length?`<div class="tbl"><table>${kepalaTrx}<tbody>${list.map(barisTrx).join('')}</tbody>
     <tfoot><tr><td colspan="4">${list.length} transaksi · masuk ${rp(h.m)} · keluar ${rp(h.k)}</td><td class="r">${rpPlus(h.l)}</td><td></td></tr></tfoot></table></div>
     <div class="small muted">Klik baris untuk mengubah, menghapus, atau melihat buktinya.</div>`
-    :`<div class="empty">${S.trx.length?'Tidak ada transaksi yang cocok dengan saringan ini.':'Belum ada transaksi. Scan bukti transfer atau tambah manual.'}</div>`}
+    :`<div class="empty">${S.trx.length?'Tidak ada transaksi yang cocok dengan saringan ini.':'Belum ada transaksi. Scan bukti / foto nota, atau tambah manual.'}</div>`}
   ${S.trx.length>=1000?'<div class="banner w">Hanya 1.000 transaksi terbaru yang dimuat. Minta Claude menambah arsip per tahun.</div>':''}</section>`;
 }
 function vProyek(){
@@ -849,7 +852,10 @@ function mTrx(){
     <label class="f">Keterangan<input type="text" id="t-ket" value="${esc(e.ket)}" placeholder="Contoh: besi hollow 4x4 untuk rangka plafon"></label>
     <label class="f">Catatan (opsional)<input type="text" id="t-catatan" value="${esc(e.catatan)}" placeholder="Hal yang perlu diingat atau dicek"></label>
     ${e.sumber?`<div class="small muted">Sumber: ${esc(e.sumber)}</div>`:''}
-    <label class="f">${e.bukti?'Ganti foto bukti (opsional)':'Foto bukti (opsional)'}<input type="file" id="t-file" accept="image/*">${e.file?`<span class="small muted">Terpilih: ${esc(e.file.name)}</span>`:''}</label>
+    <div class="f"><span>${e.bukti?'Ganti foto bukti / nota (opsional)':'Foto bukti / nota (opsional)'}</span>
+      <div class="row"><label class="btn" for="t-cam">${IK_CAM}Kamera</label><label class="btn" for="t-file">${IK_GAL}Galeri</label>${e.file?`<button type="button" class="btn" data-act="buang-foto">Batal</button>`:''}</div>
+      <input type="file" id="t-cam" accept="image/*" capture="environment" hidden><input type="file" id="t-file" accept="image/*" hidden>
+      ${e.file?`<div class="foto-pilih"><img src="${e.fileUrl}" alt="Foto yang dipilih"><span class="small muted">${esc(e.file.name||'Foto kamera')} · ${Math.max(1,Math.round(e.file.size/1024))} KB, dikecilkan otomatis saat disimpan</span></div>`:''}</div>
     ${UI.bukti?`<img class="bukti-img" src="${UI.bukti}" alt="Bukti transaksi">`:''}
     ${baru?'':`<div class="small muted">Diinput oleh <b>${esc(e.oleh||'-')}</b> · ${jam(e.pada)}${e.editOleh?` · terakhir diubah oleh <b>${esc(e.editOleh)}</b> · ${jam(e.editPada)}`:''}</div>`}
     <div class="row">${S.ro?'':`<button class="btn pri" type="submit">Simpan</button>`}${e.bukti&&!UI.bukti?'<button class="btn" type="button" data-act="lihat-bukti">Lihat bukti</button>':''}
@@ -957,9 +963,10 @@ function vDraf(d){
 }
 function mScan(){
   const aktif=UI.scan.filter(d=>d.st!=='beres'),siap=aktif.filter(d=>d.st==='ok'||d.st==='gagal').length;
-  return `${kepalaDlg('Scan bukti transfer')}
-  <div class="drop" id="drop"><b>Pilih atau seret screenshot bukti transfer</b><span class="small">Bisa beberapa gambar sekaligus. Claude membaca nominal, tanggal, dan penerimanya, lalu kamu tinggal memeriksa dan menyimpan.</span>
-    <label class="btn pri" for="scan-file">Pilih gambar</label><input type="file" id="scan-file" accept="image/*" multiple hidden></div>
+  return `${kepalaDlg('Scan bukti transfer / nota')}
+  <div class="drop" id="drop"><b>Foto nota atau pilih screenshot bukti transfer</b><span class="small">Foto langsung pakai kamera HP, atau pilih beberapa gambar sekaligus dari galeri. ${S.bisaScan?'Claude membaca nominal, tanggal, dan penerimanya, lalu kamu tinggal memeriksa dan menyimpan.':'Setelah gambar masuk, isi angkanya lalu simpan.'}</span>
+    <div class="row" style="justify-content:center"><label class="btn pri" for="scan-cam">${IK_CAM}Foto pakai kamera</label><label class="btn" for="scan-file">${IK_GAL}Pilih dari galeri</label></div>
+    <input type="file" id="scan-cam" accept="image/*" capture="environment" hidden><input type="file" id="scan-file" accept="image/*" multiple hidden></div>
   ${S.bisaScan?'':'<div class="banner w">Pembacaan otomatis tidak tersedia di tampilan ini. Gambar tetap bisa diunggah, lalu isi angkanya sendiri.</div>'}
   <div id="drafs" style="display:flex;flex-direction:column;gap:10px">${aktif.map(vDraf).join('')}</div>
   ${aktif.length?`<div class="row"><span class="small muted grow">Hasil bacaan selalu berupa draf. Tidak ada yang masuk pembukuan sebelum kamu menekan Simpan.</span>${siap>1?`<button class="btn soft" data-act="simpan-semua">Simpan semua yang lengkap</button>`:''}</div>`:''}`;
@@ -1081,6 +1088,7 @@ document.addEventListener('click',async ev=>{
   switch(b.dataset.act){
     case 'keluar':UI.balik=null;window.nw28.logout();S.role='';S.users=null;S.log=null;UI.akses={};S.siapP=S.siapT=false;S.proyek=[];S.trx=[];UI.user='';try{localStorage.removeItem(KEY+'-user')}catch(e){}tutup();render();break;
     case 'tutup':tutup();break;
+    case 'buang-foto':bacaTrx();if(UI.edit.fileUrl)URL.revokeObjectURL(UI.edit.fileUrl);UI.edit.file=null;UI.edit.fileUrl='';renderModal();break;
     case 'kat':UI.dk={kat:b.dataset.kat};buka('kat');break;
     case 'semua':UI.ds={q:'',jenis:'',bulan:'',kat:''};buka('semua');break;
     case 'edit-dari':{const t=S.trx.find(x=>x.id===id);if(t){UI.balik=UI.modal;UI.edit={...t};UI.bukti='';UI.modal='';buka('trx')}break}
@@ -1133,8 +1141,8 @@ document.addEventListener('change',ev=>{
   if(el.id==='rk-proyek'){UI.rk=el.value;render()}
   else if(el.dataset.flt){UI.f[el.dataset.flt]=el.value;render()}
   else if(el.dataset.pl){UI.pl[el.dataset.pl]=el.value;render()}
-  else if(el.id==='scan-file'){tambahGambar([...el.files]);el.value=''}
-  else if(el.id==='t-file'){bacaTrx();UI.edit.file=el.files[0]||null;renderModal()}
+  else if(el.id==='scan-file'||el.id==='scan-cam'){tambahGambar([...el.files]);el.value=''}
+  else if(el.id==='t-file'||el.id==='t-cam'){bacaTrx();const fl=el.files[0];if(fl&&!(fl.type||'').startsWith('image/')){toast('Pilih file gambar (JPG atau PNG).');return}if(UI.edit.fileUrl)URL.revokeObjectURL(UI.edit.fileUrl);UI.edit.file=fl||null;UI.edit.fileUrl=fl?URL.createObjectURL(fl):'';renderModal()}
   else if(el.name==='t-jenis'){bacaTrx();UI.edit.kategori=KAT[UI.edit.jenis][0];renderModal()}
   else if(el.dataset.d&&el.dataset.k==='jenis'){const d=UI.scan.find(x=>x.id===el.dataset.d);if(d){d.jenis=el.value==='masuk'?'masuk':'keluar';d.kategori=KAT[d.jenis][0];gantiDraf(d)}}
 });
