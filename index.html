@@ -1,6 +1,10 @@
 <!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><style>:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#0A0A0B;color:#EDEBE6}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>NW28 Keuangan</title>
 <meta name="theme-color" content="#0A0A0B">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/favicon-64.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="NW28 Keuangan">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -227,6 +231,10 @@ input[type=checkbox]{accent-color:var(--brand)}
 .ds-sum{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13px;color:var(--muted);padding:2px 0 4px}.ds-sum span{display:inline-flex;align-items:center;gap:6px}.ds-sum b{color:var(--ink)}
 .hb[data-act]{cursor:pointer;padding:3px 6px;margin:-3px -6px}.hb[data-act]:hover,.hb[data-act]:focus-visible{background:rgba(255,255,255,.05)}.hb[data-act]:hover .hb-l{color:var(--ink)}
 @media (max-width:720px){.tiles.t3{grid-template-columns:1fr}.dlg .tbl{margin-inline:-20px}}
+.pasang{display:flex;align-items:center;gap:12px;margin:16px 28px 0;padding:12px 12px 12px 16px;border-radius:16px;background:linear-gradient(90deg,rgba(240,88,44,.16),rgba(240,88,44,.04) 60%),var(--surface);border:1px solid #4a2a1c}
+.pasang>.lg-mark{width:26px;color:var(--accent);flex:none}.pasang .grow{display:flex;flex-direction:column;min-width:0}.pasang .small{color:var(--muted)}
+body.out .pasang{max-width:390px;margin:16px auto 0}
+@media (max-width:900px){.pasang{margin:12px 14px 0}}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -269,6 +277,7 @@ input[type=checkbox]{accent-color:var(--brand)}
   </aside>
   <div class="main">
     <header class="top"><div class="crumb"><span class="eyebrow" id="crumbDate"></span><b id="crumb">Ringkasan</b></div></header>
+    <div id="pasang" class="pasang" hidden><span class="lg-mark" aria-hidden="true"></span><span class="grow"><b>Pasang NW28 Keuangan di HP</b><span class="small">Buka langsung dari layar utama, tampil penuh seperti aplikasi biasa.</span></span><button type="button" class="btn pri" id="pasang-ok">Install</button><button type="button" class="x" id="pasang-x" aria-label="Nanti saja">×</button></div>
     <main id="app"></main>
   </div>
 </div>
@@ -1159,6 +1168,18 @@ render();
   muatPeran();
   use('user').then(async u=>{if(u&&(await u.can('data.write'))===false){S.ro=true;render()}});
   use('sample').then(async sm=>{if(!sm)return;S.sample=sm;const lim=await sm.limits().catch(()=>null);S.bisaScan=!!(lim&&lim.images);if(UI.modal==='scan'&&!memompa)renderModal()});
+})();
+
+/* ---------- aplikasi terpasang (PWA) ---------- */
+(()=>{
+  if('serviceWorker' in navigator&&window.isSecureContext)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  const box=document.getElementById('pasang');let ev=null;
+  const sudah=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  let tolak=false;try{tolak=localStorage.getItem('nw28-keu-pasang-x')==='1'}catch(e){}
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();ev=e;if(!sudah()&&!tolak)box.hidden=false});
+  document.getElementById('pasang-ok').onclick=async()=>{if(!ev)return;box.hidden=true;ev.prompt();try{await ev.userChoice}catch(e){}ev=null};
+  document.getElementById('pasang-x').onclick=()=>{box.hidden=true;try{localStorage.setItem('nw28-keu-pasang-x','1')}catch(e){}};
+  window.addEventListener('appinstalled',()=>{box.hidden=true;ev=null;if(typeof toast==='function')toast('NW28 Keuangan sudah terpasang di HP')});
 })();
 </script>
 
