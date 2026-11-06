@@ -217,6 +217,16 @@ input[type=checkbox]{accent-color:var(--brand)}
 #tip{position:fixed;z-index:40;background:#F2F0EB;color:#111;padding:8px 11px;border-radius:9px;font-size:12.5px;pointer-events:none;max-width:240px;line-height:1.5;font-variant-numeric:tabular-nums;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 #tip b{display:block}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#F2F0EB;color:#111;padding:10px 18px;border-radius:999px;font-weight:500;z-index:50;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.dlg.lebar{max-width:1180px}
+.dlg .tbl{margin-inline:-20px}.dlg .tbl th:first-child,.dlg .tbl td:first-child{padding-left:20px}.dlg .tbl th:last-child,.dlg .tbl td:last-child{padding-right:20px}
+.dlg .tbl table{min-width:820px}.dlg .tbl{max-height:min(58vh,640px);overflow:auto}.dlg .tbl thead th{position:sticky;top:0;z-index:1}
+.tiles.t3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cols.c2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.sub-p{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface-2)}
+.sub-p .hb-t{background:var(--surface-3)}
+.ds-sum{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13px;color:var(--muted);padding:2px 0 4px}.ds-sum span{display:inline-flex;align-items:center;gap:6px}.ds-sum b{color:var(--ink)}
+.hb[data-act]{cursor:pointer;padding:3px 6px;margin:-3px -6px}.hb[data-act]:hover,.hb[data-act]:focus-visible{background:rgba(255,255,255,.05)}.hb[data-act]:hover .hb-l{color:var(--ink)}
+@media (max-width:720px){.tiles.t3{grid-template-columns:1fr}.dlg .tbl{margin-inline:-20px}}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -423,7 +433,7 @@ function chartKategori(list){
   const by={};for(const t of list)if(t.jenis==='keluar')by[t.kategori||'Lainnya']=(by[t.kategori||'Lainnya']||0)+t.nominal;
   const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);if(!rows.length)return '<div class="empty">Belum ada pengeluaran.</div>';
   const max=rows[0][1],tot=rows.reduce((a,r)=>a+r[1],0);
-  return `<div class="hbs">${rows.map(([k,v])=>`<div class="hb" tabindex="0" data-tip="${esc(`${k}\n${rp(v)}\n${pct(v,tot)}% dari semua pengeluaran`)}"><span class="hb-l">${esc(k)}</span><span class="hb-t"><b style="width:${v/max*100}%"></b></span><span class="hb-v">${ringkas(v)}</span></div>`).join('')}</div>`;
+  return `<div class="hbs">${rows.map(([k,v])=>`<div class="hb" tabindex="0" role="button" data-act="kat" data-kat="${esc(k)}" data-tip="${esc(`${k}\n${rp(v)}\n${pct(v,tot)}% dari semua pengeluaran\nKlik untuk lihat rincian`)}"><span class="hb-l">${esc(k)}</span><span class="hb-t"><b style="width:${v/max*100}%"></b></span><span class="hb-v">${ringkas(v)}</span></div>`).join('')}</div>`;
 }
 function meter(label,v,rab,cls){
   const p=pct(v,rab);
@@ -462,11 +472,11 @@ function vRingkasan(){
   </div>
   <div class="cols">
     <section class="panel"><div><h3>Pemasukan dan pengeluaran per bulan</h3><div class="small muted">6 bulan terakhir, dalam rupiah${sel?` · ${esc(namaP(sel))}`:''}</div></div>${chartBulan(trx)}</section>
-    <section class="panel"><div><h3>Pengeluaran per kategori</h3><div class="small muted">${sel?esc(namaP(sel)):(ADM()?'Semua proyek':'Semua proyek dan overhead')}</div></div>${chartKategori(trx)}</section>
+    <section class="panel"><div><h3>Pengeluaran per kategori</h3><div class="small muted">${sel?esc(namaP(sel)):(ADM()?'Semua proyek':'Semua proyek dan overhead')} · klik kategori untuk rinciannya</div></div>${chartKategori(trx)}</section>
   </div>
   <h2>${sel?'Proyek':'Per proyek'}</h2>
   ${pro.length?`<div class="grid2">${pro.map(p=>kartuProyek(p,false)).join('')}</div>`:'<section class="panel empty">Belum ada proyek.</section>'}
-  <section class="panel"><div class="row"><h3 class="grow">Transaksi terbaru</h3><button class="btn soft" data-tab="transaksi">Lihat semua</button></div>
+  <section class="panel"><div class="row"><h3 class="grow">Transaksi terbaru</h3><button class="btn soft" data-act="semua">Lihat semua</button></div>
   ${trx.length?`<div class="tbl"><table>${kepalaTrx}<tbody>${trx.slice(0,6).map(barisTrx).join('')}</tbody></table></div>`:'<div class="empty">Belum ada transaksi.</div>'}</section>`;
 }
 function saring(){const f=UI.f,q=f.q.trim().toLowerCase();
@@ -759,11 +769,59 @@ async function unduh(fmt,btn){
 }
 
 /* ---------- modal ---------- */
-function buka(m){UI.modal=m;renderModal()}
-function tutup(){UI.modal='';UI.edit=null;UI.bukti='';if(!UI.scan.some(d=>d.st!=='beres')){UI.scan.forEach(d=>URL.revokeObjectURL(d.url));UI.scan=[]}$('#modal').hidden=true;$('#modal').innerHTML=''}
+function buka(m){UI.modal=m;const tp=document.getElementById('tip');if(tp)tp.hidden=true;renderModal()}
+function tutup(){UI.modal='';UI.edit=null;UI.bukti='';if(!UI.scan.some(d=>d.st!=='beres')){UI.scan.forEach(d=>URL.revokeObjectURL(d.url));UI.scan=[]}$('#modal').hidden=true;$('#modal').innerHTML='';if(UI.balik){const m=UI.balik;UI.balik=null;buka(m)}}
 function renderModal(){
   const el=$('#modal');if(!UI.modal){el.hidden=true;return}
-  el.innerHTML=`<div class="dlg" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi})[UI.modal]()}</div>`;el.hidden=false;
+  el.innerHTML=`<div class="dlg${UI.modal==='semua'||UI.modal==='kat'?' lebar':''}" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi,kat:mKat,semua:mSemua})[UI.modal]()}</div>`;el.hidden=false;
+}
+/* ---------- rincian dari Ringkasan (dialog, tanpa pindah halaman) ---------- */
+function lingkupRk(){const sel=P(UI.rk)?UI.rk:'';return{sel,trx:sel?S.trx.filter(x=>x.proyek===sel):S.trx}}
+const urutTrx=(a,b)=>b.tanggal.localeCompare(a.tanggal)||(b.pada||0)-(a.pada||0);
+const lingkupNama=sel=>sel?esc(namaP(sel)):(ADM()?'Semua proyek':'Semua proyek dan overhead');
+function mKat(){
+  const {sel,trx}=lingkupRk(),k=UI.dk.kat,keluar=trx.filter(t=>t.jenis==='keluar'),list=keluar.filter(t=>(t.kategori||'Lainnya')===k).sort(urutTrx);
+  const tot=list.reduce((a,t)=>a+t.nominal,0),semua=keluar.reduce((a,t)=>a+t.nominal,0),bukti=list.filter(t=>t.bukti).length;
+  const grup=key=>{const m={};list.forEach(t=>{const x=key(t);m[x]=(m[x]||0)+t.nominal});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+  const perP=grup(t=>t.proyek),perH=grup(t=>(t.pihak||'').trim()||'(tanpa nama)').slice(0,6);
+  const bar=(rows,lab)=>{const mx=rows.length?rows[0][1]:1;return `<div class="hbs">${rows.map(([x,v])=>`<div class="hb"><span class="hb-l">${lab(x)}</span><span class="hb-t"><b style="width:${v/mx*100}%"></b></span><span class="hb-v">${ringkas(v)}</span></div>`).join('')}</div>`};
+  return `${kepalaDlg('Pengeluaran · '+esc(k))}
+  <div class="small muted" style="margin-top:-8px">${lingkupNama(sel)}</div>
+  <div class="tiles t3">
+    <div class="tile k"><span class="label"><i class="dot" style="background:var(--s2)"></i>Total ${esc(k)}</span><strong class="num">${rp(tot)}</strong><span class="small">${pct(tot,semua)}% dari semua pengeluaran</span></div>
+    <div class="tile"><span class="label">Jumlah transaksi</span><strong class="num">${list.length}</strong><span class="small">${list.length?'Rata-rata '+rp(tot/list.length):'-'}</span></div>
+    <div class="tile"><span class="label">Dengan bukti</span><strong class="num">${bukti} / ${list.length}</strong><span class="small">${list.length-bukti?list.length-bukti+' belum ada bukti':'Semua ada bukti'}</span></div>
+  </div>
+  ${list.length?`<div class="cols c2">${!sel&&perP.length>1?`<section class="sub-p"><div class="label">Per proyek</div>${bar(perP,x=>esc(namaP(x)))}</section>`:''}<section class="sub-p"><div class="label">Dibayar ke (terbesar)</div>${bar(perH,esc)}</section></div>
+  <div class="tbl"><table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Dibayar ke</th>${sel?'':'<th>Proyek</th>'}<th>Bank / metode</th><th>Input</th><th>Bukti</th><th class="r">Nominal</th></tr></thead><tbody>
+  ${list.map(t=>`<tr class="klik" data-act="edit-dari" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}</td><td><b>${esc(t.ket||'(tanpa keterangan)')}</b>${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}<td>${esc(t.bank||'-')}${t.ref?`<span class="sub">Ref ${esc(t.ref)}</span>`:''}</td><td style="text-transform:capitalize">${esc(NAMA[t.oleh]||t.oleh||'-')}</td><td>${t.bukti?'<span class="pill ws">Ada</span>':'<span class="pill off">Belum</span>'}</td><td class="r"><span class="minus">−${rp(t.nominal)}</span></td></tr>`).join('')}
+  </tbody><tfoot><tr><td colspan="${sel?6:7}">${list.length} transaksi</td><td class="r">${rp(tot)}</td></tr></tfoot></table></div>
+  <div class="small muted">Klik baris untuk melihat bukti, mengubah, atau menghapus. Setelah itu kamu kembali ke daftar ini.</div>`:'<div class="empty">Tidak ada transaksi di kategori ini.</div>'}`;
+}
+function dsList(){const {trx}=lingkupRk(),d=UI.ds,q=d.q.trim().toLowerCase();
+  return trx.filter(t=>(!d.jenis||t.jenis===d.jenis)&&(!d.bulan||t.tanggal.startsWith(d.bulan))&&(!d.kat||(t.kategori||'Lainnya')===d.kat)&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,t.catatan,t.oleh,namaP(t.proyek)].join(' ').toLowerCase().includes(q))).sort(urutTrx)}
+function dsBody(){
+  const {sel}=lingkupRk(),list=dsList(),h=hitung(list);
+  if(!list.length)return '<div class="empty">Tidak ada transaksi yang cocok.</div>';
+  return `<div class="ds-sum"><span><i class="dot" style="background:var(--s1)"></i>Masuk <b class="num">${rp(h.m)}</b></span><span><i class="dot" style="background:var(--s2)"></i>Keluar <b class="num">${rp(h.k)}</b></span><span>Selisih <b class="num ${h.l>=0?'plus':'minus'}">${rpPlus(h.l)}</b></span><span class="muted">${list.length} transaksi</span></div>
+  <div class="tbl"><table class="rinci"><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Dibayar ke / dari</th>${sel?'':'<th>Proyek</th>'}<th>Kategori</th><th>Bank / metode</th><th>Input</th><th>Bukti</th><th class="r">Nominal</th></tr></thead><tbody>
+  ${list.map(t=>`<tr class="klik" data-act="edit-dari" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}${t.pada>1e12?`<span class="sub">diinput ${jam(t.pada)}</span>`:''}</td>
+    <td><b>${esc(t.ket||'(tanpa keterangan)')}</b>${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}
+    <td>${esc(t.kategori||'-')}</td><td>${esc(t.bank||'-')}${t.ref?`<span class="sub">Ref ${esc(t.ref)}</span>`:''}</td><td style="text-transform:capitalize">${esc(NAMA[t.oleh]||t.oleh||'-')}${t.editOleh?`<span class="sub">diubah ${esc(NAMA[t.editOleh]||t.editOleh)}</span>`:''}</td>
+    <td>${t.bukti?'<span class="pill ws">Ada</span>':'<span class="pill off">Belum</span>'}</td><td class="r"><span class="${t.jenis==='masuk'?'plus':'minus'}">${t.jenis==='masuk'?'+':'−'}${rp(t.nominal)}</span></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function mSemua(){
+  const {sel,trx}=lingkupRk(),d=UI.ds,bl=[...new Set(trx.map(t=>t.tanggal.slice(0,7)))].sort().reverse(),kt=[...new Set(trx.map(t=>t.kategori||'Lainnya'))].sort();
+  return `${kepalaDlg('Rincian transaksi')}
+  <div class="small muted" style="margin-top:-8px">${lingkupNama(sel)} · klik baris untuk melihat bukti atau mengubah</div>
+  <div class="fbar">
+    <label class="f">Cari<input type="search" id="ds-q" placeholder="Keterangan, nama, ref, catatan" value="${esc(d.q)}"></label>
+    <label class="f">Jenis<select data-ds="jenis">${opsi([['','Masuk dan keluar'],['masuk','Pemasukan'],['keluar','Pengeluaran']],d.jenis)}</select></label>
+    <label class="f">Bulan<select data-ds="bulan">${opsi([['','Semua bulan'],...bl.map(b=>[b,bln(b)])],d.bulan)}</select></label>
+    <label class="f">Kategori<select data-ds="kat">${opsi([['','Semua kategori'],...kt],d.kat)}</select></label>
+  </div>
+  <div id="ds-body">${dsBody()}</div>`;
 }
 const kepalaDlg=j=>`<div class="dlg-h"><h2>${j}</h2><button class="x" data-act="tutup" aria-label="Tutup">×</button></div>`;
 function mTrx(){
@@ -1012,8 +1070,11 @@ document.addEventListener('click',async ev=>{
   if(tb){UI.tab=tb.dataset.tab;if(UI.tab==='riwayat')S.log=null;try{localStorage.setItem(KEY+'-tab',UI.tab)}catch(e){}render();window.scrollTo(0,0);return}
   const b=ev.target.closest('[data-act]');if(!b)return;const id=b.dataset.id;
   switch(b.dataset.act){
-    case 'keluar':window.nw28.logout();S.role='';S.users=null;S.log=null;UI.akses={};S.siapP=S.siapT=false;S.proyek=[];S.trx=[];UI.user='';try{localStorage.removeItem(KEY+'-user')}catch(e){}tutup();render();break;
+    case 'keluar':UI.balik=null;window.nw28.logout();S.role='';S.users=null;S.log=null;UI.akses={};S.siapP=S.siapT=false;S.proyek=[];S.trx=[];UI.user='';try{localStorage.removeItem(KEY+'-user')}catch(e){}tutup();render();break;
     case 'tutup':tutup();break;
+    case 'kat':UI.dk={kat:b.dataset.kat};buka('kat');break;
+    case 'semua':UI.ds={q:'',jenis:'',bulan:'',kat:''};buka('semua');break;
+    case 'edit-dari':{const t=S.trx.find(x=>x.id===id);if(t){UI.balik=UI.modal;UI.edit={...t};UI.bukti='';UI.modal='';buka('trx')}break}
     case 'log-ulang':S.log=null;render();break;
     case 'log-lagi':b.disabled=true;muatLog(true);break;
     case 'simpan-akses':{const set=(UI.akses||{})[id]||new Set(((S.users||[]).find(x=>x.user===id)||{}).akses||[]);b.disabled=true;
@@ -1050,6 +1111,7 @@ document.addEventListener('input',ev=>{
   const el=ev.target;
   if(el.classList&&el.classList.contains('uang')){const n=angka(el.value);el.value=titik(n)}
   if(el.id==='cari'){UI.f.q=el.value;render();return}
+  if(el.id==='ds-q'){UI.ds.q=el.value;const bd=$('#ds-body');if(bd)bd.innerHTML=dsBody();return}
   if(el.dataset&&el.dataset.d){const d=UI.scan.find(x=>x.id===el.dataset.d);if(d){const k=el.dataset.k;d[k]=k==='nominal'?angka(el.value):el.value}}
 });
 document.addEventListener('change',ev=>{
@@ -1057,6 +1119,7 @@ document.addEventListener('change',ev=>{
   if(el.dataset.share){const u=(S.users||[]).find(x=>x.user===el.dataset.share);if(!u)return;const pid=el.value,on=el.checked,baru=on?[...new Set([...(u.akses||[]),pid])]:(u.akses||[]).filter(x=>x!==pid);el.disabled=true;
     window.nw28.setAkses(u.user,baru).then(()=>{u.akses=baru;if(UI.akses)delete UI.akses[u.user];el.disabled=false;toast((on?'Dibagikan ke ':'Tidak lagi dibagikan ke ')+(NAMA[u.user]||u.user)+': '+namaP(pid))},()=>{el.checked=!on;el.disabled=false;toast('Gagal menyimpan. Coba lagi.')});return}
   if(el.dataset.ak){const u=el.dataset.ak;UI.akses=UI.akses||{};UI.akses[u]=UI.akses[u]||new Set(((S.users||[]).find(x=>x.user===u)||{}).akses||[]);el.checked?UI.akses[u].add(el.value):UI.akses[u].delete(el.value);const c=document.getElementById('akn-'+u);if(c)c.textContent=UI.akses[u].size+' dari '+S.proyek.length+' proyek dipilih';return}
+  if(el.dataset.ds){UI.ds[el.dataset.ds]=el.value;const bd=$('#ds-body');if(bd)bd.innerHTML=dsBody();return}
   if(el.dataset.lg){UI.lg=UI.lg||{};UI.lg[el.dataset.lg]=el.value;render();return}
   if(el.id==='rk-proyek'){UI.rk=el.value;render()}
   else if(el.dataset.flt){UI.f[el.dataset.flt]=el.value;render()}
@@ -1066,7 +1129,8 @@ document.addEventListener('change',ev=>{
   else if(el.name==='t-jenis'){bacaTrx();UI.edit.kategori=KAT[UI.edit.jenis][0];renderModal()}
   else if(el.dataset.d&&el.dataset.k==='jenis'){const d=UI.scan.find(x=>x.id===el.dataset.d);if(d){d.jenis=el.value==='masuk'?'masuk':'keluar';d.kategori=KAT[d.jenis][0];gantiDraf(d)}}
 });
-document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&UI.modal&&UI.modal!=='scan')tutup()});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&UI.modal&&UI.modal!=='scan'){UI.balik=UI.modal==='trx'?UI.balik:null;tutup()}
+  if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches&&ev.target.matches('div[data-act="kat"]')){ev.preventDefault();ev.target.click()}});
 ['dragover','dragleave','drop'].forEach(n=>document.addEventListener(n,ev=>{
   const z=ev.target.closest&&ev.target.closest('#drop');if(!z)return;ev.preventDefault();z.classList.toggle('on',n==='dragover');
   if(n==='drop'&&ev.dataTransfer)tambahGambar([...ev.dataTransfer.files])}));
