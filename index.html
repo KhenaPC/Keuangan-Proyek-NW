@@ -217,6 +217,8 @@ input[type=checkbox]{accent-color:var(--brand)}
 #tip{position:fixed;z-index:40;background:#F2F0EB;color:#111;padding:8px 11px;border-radius:9px;font-size:12.5px;pointer-events:none;max-width:240px;line-height:1.5;font-variant-numeric:tabular-nums;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 #tip b{display:block}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#F2F0EB;color:#111;padding:10px 18px;border-radius:999px;font-weight:500;z-index:50;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
 
 /* ---------- layar sempit ---------- */
@@ -302,7 +304,21 @@ function colRef(coll){const q={orderBy:()=>q,limit:()=>q,doc:id=>docRef(coll,id|
   add:async d=>{const r=docRef(coll,rid());await r.set(d);return r},
   onSnapshot:(cb,err)=>{subs.push({coll,cb,last:null});refresh(coll).catch(e=>{if(tok()&&err)err(e)});return()=>{}}};return q}
 const db={collection:colRef,doc:p=>{const [c,i]=p.split('/');return docRef(c,i)}};
-const downloads={save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);return{status:'saved'}}};
+const MIME={pdf:'application/pdf',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',csv:'text/csv'};
+let dlLast=null;
+const downloads={save:async({filename,data})=>{
+  const ext=String(filename).split('.').pop().toLowerCase(),b=new Blob([data],{type:MIME[ext]||'application/octet-stream'}),u=URL.createObjectURL(b);
+  /* unduh otomatis; link disimpan lama (bukan 5 detik) supaya dialog "Simpan sebagai" di browser tidak kehilangan filenya */
+  const a=document.createElement('a');a.href=u;a.download=filename;a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();
+  setTimeout(()=>a.remove(),1000);
+  if(dlLast){clearTimeout(dlLast.t);URL.revokeObjectURL(dlLast.u)}
+  /* cadangan: tombol unduh manual (klik langsung dari pengguna tidak pernah diblokir browser) */
+  let box=document.getElementById('dlbox');if(!box){box=document.createElement('div');box.id='dlbox';box.setAttribute('role','status');document.body.appendChild(box)}
+  box.innerHTML='<span><b>File siap</b><span class="small"></span></span><a class="btn pri"></a><button type="button" class="x" aria-label="Tutup">×</button>';
+  box.querySelector('.small').textContent=filename;const l=box.querySelector('a');l.href=u;l.download=filename;l.textContent='Unduh lagi';
+  const tutup=()=>{box.hidden=true};box.querySelector('.x').onclick=tutup;box.hidden=false;
+  dlLast={u,t:setTimeout(()=>{tutup();URL.revokeObjectURL(u);dlLast=null},180000)};
+  return{status:'saved'}}};
 const user={can:async()=>true};
 window.claude={use:async n=>({db,downloads,user})[n]||null};
 window.nw28={
@@ -737,7 +753,7 @@ async function unduh(fmt,btn){
     if(fmt==='pdf'){toast('Menyiapkan PDF, tunggu sebentar…');
       try{if(!window.html2canvas)throw 0;data=await buatPdfLayar(L)}catch(e){data=await buatPdf(L);toast(e&&e.code==='terlalu_panjang'?'Daftarnya terlalu panjang untuk dipotret, jadi PDF dibuat dalam bentuk tabel.':'Tampilan layar tidak bisa dipotret di sini, jadi PDF dibuat dalam bentuk tabel.')}}
     else data=UI.tab==='transaksi'&&window.ExcelJS?await buatXlsxTrx(L):buatXlsx(L);
-    await S.dl.save({filename:`NW28-Keuangan-${L.berkas}-${hariIni()}.${fmt}`,data});toast('File '+(fmt==='pdf'?'PDF':'Excel')+' terunduh')}
+    await S.dl.save({filename:`NW28-Keuangan-${L.berkas}-${hariIni()}.${fmt}`,data});toast('File '+(fmt==='pdf'?'PDF':'Excel')+' sudah dibuat. Kalau belum muncul di folder Download, klik "Unduh lagi".')}
   catch(e){const c=e&&e.code;if(c!=='declined')toast(c==='rate_limited'?'Masih ada unduhan yang menunggu konfirmasi.':c==='extension_not_enabled'||c==='unavailable'||c==='not_granted'?'Unduhan tidak tersedia di tampilan ini.':'Gagal membuat file. Coba lagi.')}
   btn.disabled=false;
 }
