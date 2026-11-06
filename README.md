@@ -16,10 +16,11 @@ Scan bukti transfer otomatis hanya tersedia di versi Claude. Di versi ini bukti 
 
 Dipindahkan dari folder `keuangan/` di repo ABSENSI-NW28 (commit 53eb53e).
 
-## Install di HP (Android)
+## Install di HP (Android dan iPhone)
 
 Aplikasi ini bisa dipasang seperti aplikasi biasa (PWA). Ada tiga file pendukung: `manifest.webmanifest`, `sw.js`, dan folder `icons/`.
 
 - **Cara pasang:** buka link Vercel di Chrome Android, lalu ketuk tombol **Install** di banner. Kalau banner tidak muncul, buka menu ⋮ lalu pilih **Instal aplikasi** / **Tambahkan ke layar utama**.
 - **Data selalu langsung dari Supabase.** `sw.js` hanya menyimpan kerangka aplikasi (halaman, ikon, pustaka), tidak pernah menyimpan data transaksi.
 - **Update:** setiap push ke `main` langsung terpakai saat aplikasi dibuka ulang, karena halaman selalu diambil versi terbaru dulu.
+- **iPhone/iPad:** buka link di **Safari**, ketuk tombol **Bagikan**, lalu pilih **Tambah ke Layar Utama**. Di iPhone muncul banner berisi petunjuk ini, karena Safari tidak punya tombol Install otomatis.

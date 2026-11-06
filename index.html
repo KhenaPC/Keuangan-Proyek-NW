@@ -1187,6 +1187,10 @@ render();
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();ev=e;if(!sudah()&&!tolak)box.hidden=false});
   document.getElementById('pasang-ok').onclick=async()=>{if(!ev)return;box.hidden=true;ev.prompt();try{await ev.userChoice}catch(e){}ev=null};
   document.getElementById('pasang-x').onclick=()=>{box.hidden=true;try{localStorage.setItem('nw28-keu-pasang-x','1')}catch(e){}};
+  /* iPhone/iPad: Safari tidak punya tombol Install otomatis, jadi tampilkan cara pasangnya */
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(ios&&!sudah()&&!tolak){const t=box.querySelector('.grow');t.innerHTML='<b>Pasang NW28 Keuangan di iPhone</b><span class="small">Di Safari, ketuk tombol <b>Bagikan</b> <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px" aria-label="ikon Bagikan"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 12v8h14v-8"/></svg> di bawah, lalu pilih <b>Tambah ke Layar Utama</b>.</span>';
+    document.getElementById('pasang-ok').hidden=true;box.hidden=false}
   window.addEventListener('appinstalled',()=>{box.hidden=true;ev=null;if(typeof toast==='function')toast('NW28 Keuangan sudah terpasang di HP')});
 })();
 </script>
