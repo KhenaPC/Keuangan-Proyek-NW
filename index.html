@@ -237,6 +237,10 @@ body.out .pasang{max-width:390px;margin:16px auto 0}
 @media (max-width:900px){.pasang{margin:12px 14px 0}}
 .foto-pilih{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}.foto-pilih img{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:none}
 .btn svg{flex:none}
+.kembar{flex-direction:column;align-items:flex-start;gap:6px}.kembar ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink)}.kembar li{margin:2px 0}
+.dbl{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.dbl-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dbl-t{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;min-width:0}.dbl-t:hover{border-color:#4a4c52}
+@media (max-width:600px){.dbl-g{grid-template-columns:1fr}}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -495,7 +499,7 @@ function saring(){const f=UI.f,q=f.q.trim().toLowerCase();
   return S.trx.filter(t=>(!f.proyek||t.proyek===f.proyek)&&(!f.jenis||t.jenis===f.jenis)&&(!f.bulan||t.tanggal.startsWith(f.bulan))&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,namaP(t.proyek)].join(' ').toLowerCase().includes(q)))}
 function vTransaksi(){
   const list=saring(),h=hitung(list),f=UI.f;
-  return `<div class="row"><h2 class="grow">Transaksi</h2>${tombolInput()}${tombolUnduh()}</div>
+  return `<div class="row"><h2 class="grow">Transaksi</h2>${tombolInput()}${tombolUnduh()}</div>${(()=>{const n=pasangDobel().length;return n?`<div class="banner w"><span class="grow"><b>${n} pasang transaksi kemungkinan dobel.</b> <span class="small">Nominal, proyek, dan tanggalnya hampir sama. Cek supaya tidak terhitung dua kali.</span></span><button class="btn" data-act="dobel">Periksa</button></div>`:''})()}
   <section class="panel"><div class="fbar">
     <label class="f">Cari<input type="search" id="cari" placeholder="Keterangan, nama, nomor ref" value="${esc(f.q)}"></label>
     <label class="f">Proyek<select id="f-proyek" data-flt="proyek">${opsiProyek(f.proyek,'Semua proyek')}</select></label>
@@ -785,7 +789,7 @@ function buka(m){UI.modal=m;const tp=document.getElementById('tip');if(tp)tp.hid
 function tutup(){UI.modal='';UI.edit=null;UI.bukti='';if(!UI.scan.some(d=>d.st!=='beres')){UI.scan.forEach(d=>URL.revokeObjectURL(d.url));UI.scan=[]}$('#modal').hidden=true;$('#modal').innerHTML='';if(UI.balik){const m=UI.balik;UI.balik=null;buka(m)}}
 function renderModal(){
   const el=$('#modal');if(!UI.modal){el.hidden=true;return}
-  el.innerHTML=`<div class="dlg${UI.modal==='semua'||UI.modal==='kat'?' lebar':''}" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi,kat:mKat,semua:mSemua})[UI.modal]()}</div>`;el.hidden=false;
+  el.innerHTML=`<div class="dlg${UI.modal==='semua'||UI.modal==='kat'||UI.modal==='dobel'?' lebar':''}" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi,kat:mKat,semua:mSemua,dobel:mDobel})[UI.modal]()}</div>`;el.hidden=false;
 }
 /* ---------- rincian dari Ringkasan (dialog, tanpa pindah halaman) ---------- */
 function lingkupRk(){const sel=P(UI.rk)?UI.rk:'';return{sel,trx:sel?S.trx.filter(x=>x.proyek===sel):S.trx}}
@@ -852,13 +856,14 @@ function mTrx(){
     <label class="f">Keterangan<input type="text" id="t-ket" value="${esc(e.ket)}" placeholder="Contoh: besi hollow 4x4 untuk rangka plafon"></label>
     <label class="f">Catatan (opsional)<input type="text" id="t-catatan" value="${esc(e.catatan)}" placeholder="Hal yang perlu diingat atau dicek"></label>
     ${e.sumber?`<div class="small muted">Sumber: ${esc(e.sumber)}</div>`:''}
+    <div id="t-kembar">${htmlKembar(e)}</div>
     <div class="f"><span>${e.bukti?'Ganti foto bukti / nota (opsional)':'Foto bukti / nota (opsional)'}</span>
       <div class="row"><label class="btn" for="t-cam">${IK_CAM}Kamera</label><label class="btn" for="t-file">${IK_GAL}Galeri</label>${e.file?`<button type="button" class="btn" data-act="buang-foto">Batal</button>`:''}</div>
       <input type="file" id="t-cam" accept="image/*" capture="environment" hidden><input type="file" id="t-file" accept="image/*" hidden>
       ${e.file?`<div class="foto-pilih"><img src="${e.fileUrl}" alt="Foto yang dipilih"><span class="small muted">${esc(e.file.name||'Foto kamera')} · ${Math.max(1,Math.round(e.file.size/1024))} KB, dikecilkan otomatis saat disimpan</span></div>`:''}</div>
     ${UI.bukti?`<img class="bukti-img" src="${UI.bukti}" alt="Bukti transaksi">`:''}
     ${baru?'':`<div class="small muted">Diinput oleh <b>${esc(e.oleh||'-')}</b> · ${jam(e.pada)}${e.editOleh?` · terakhir diubah oleh <b>${esc(e.editOleh)}</b> · ${jam(e.editPada)}`:''}</div>`}
-    <div class="row">${S.ro?'':`<button class="btn pri" type="submit">Simpan</button>`}${e.bukti&&!UI.bukti?'<button class="btn" type="button" data-act="lihat-bukti">Lihat bukti</button>':''}
+    <div class="row">${S.ro?'':`<button class="btn pri" type="submit">${baru&&e.okKembar?'Tetap simpan':'Simpan'}</button>`}${e.bukti&&!UI.bukti?'<button class="btn" type="button" data-act="lihat-bukti">Lihat bukti</button>':''}
     ${baru||S.ro?'':'<button class="btn bad" type="button" style="margin-left:auto" data-act="hapus-trx">Hapus</button>'}</div>
   </form>`;
 }
@@ -943,12 +948,34 @@ function vRiwayat(){
   ${S.logHabis?'':'<div class="row"><button class="btn soft" data-act="log-lagi">Muat riwayat lebih lama</button></div>'}
   <div class="small muted">Setiap tambah, ubah, dan hapus data, perubahan akses admin, serta ganti password tercatat otomatis di server, beserta waktu dan siapa yang melakukannya. Riwayat tidak bisa diubah dari aplikasi.</div></section>`;
 }
-function mirip(d){return S.trx.find(t=>(d.ref&&t.ref&&t.ref===d.ref)||(t.nominal===d.nominal&&d.nominal>0&&t.tanggal===d.tanggal&&t.jenis===d.jenis))}
+/* ---------- cegah input dobel ---------- */
+const hariAntara=(a,b)=>Math.abs((Date.parse(a)-Date.parse(b))/864e5);
+/* transaksi lain dengan jenis & nominal sama dalam ±3 hari (atau nomor ref sama) */
+function kembar(x){if(!x||!(x.nominal>0)||!x.tanggal)return[];
+  return S.trx.filter(t=>t.id!==x.id&&((x.ref&&t.ref&&t.ref===x.ref)||(t.jenis===x.jenis&&t.nominal===x.nominal&&hariAntara(t.tanggal,x.tanggal)<=3))).sort((a,b)=>hariAntara(a.tanggal,x.tanggal)-hariAntara(b.tanggal,x.tanggal))}
+function mirip(d){return kembar(d)[0]}
+function htmlKembar(e){const k=kembar(e);if(!k.length)return'';
+  return `<div class="banner w kembar"><b>Hati-hati dobel: ${k.length===1?'ada transaksi':'ada '+k.length+' transaksi'} dengan nominal ${rp(e.nominal)} di tanggal berdekatan.</b>
+  <ul>${k.slice(0,4).map(t=>`<li>${tgl(t.tanggal)} · ${esc(t.ket||'(tanpa keterangan)')} · ${esc(namaP(t.proyek))} · diinput ${esc(NAMA[t.oleh]||t.oleh||'-')}</li>`).join('')}</ul>
+  <span class="small">${e.id?'Cek apakah ini transaksi yang sama.':'Kalau memang transaksi berbeda, tekan Simpan sekali lagi.'}</span></div>`}
+let dobelTutup=new Set();try{dobelTutup=new Set(JSON.parse(localStorage.getItem('nw28-keu-bukan-dobel')||'[]'))}catch(e){}
+/* pasangan yang kemungkinan dobel: proyek, jenis, nominal sama, selisih ≤2 hari; biaya transfer kecil diabaikan */
+/* dua baris yang sama-sama berasal dari mutasi bank memang dua transfer berbeda, jadi tidak dianggap dobel */
+const dariBank=t=>/mutasi BCA/i.test(t.catatan||'')||/^(bsd-|scn-|mts)/.test(t.id);
+function pasangDobel(){const out=[],by={};
+  S.trx.forEach(t=>{if(!(t.nominal>5000))return;const k=t.jenis+'|'+t.nominal+'|'+t.proyek;(by[k]=by[k]||[]).push(t)});
+  Object.values(by).forEach(g=>{if(g.length<2)return;g.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+    for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length&&hariAntara(g[i].tanggal,g[j].tanggal)<=2;j++){if(dariBank(g[i])&&dariBank(g[j]))continue;const key=[g[i].id,g[j].id].sort().join('~');if(!dobelTutup.has(key))out.push({key,a:g[i],b:g[j]})}});
+  return out.sort((x,y)=>y.a.tanggal.localeCompare(x.a.tanggal))}
+function mDobel(){const ps=pasangDobel(),kartu=t=>`<button type="button" class="dbl-t" data-act="edit-dari" data-id="${t.id}"><span class="small muted">${tgl(t.tanggal)} · diinput ${esc(NAMA[t.oleh]||t.oleh||'-')}${t.bukti?' · ada bukti':''}</span><b>${esc(t.ket||'(tanpa keterangan)')}</b><span class="small">${esc(t.pihak||'-')} · ${esc(t.kategori||'-')}${t.bank?' · '+esc(t.bank):''}</span></button>`;
+  return `${kepalaDlg('Kemungkinan input dobel')}
+  <div class="small muted" style="margin-top:-8px">Proyek, jenis, dan nominal sama, tanggalnya selisih 2 hari atau kurang, dan minimal salah satunya diinput manual (bukan dari mutasi bank). Klik salah satu untuk membuka, lalu hapus yang dobel. Kalau memang dua transaksi berbeda, tekan "Bukan dobel".</div>
+  ${ps.length?ps.map(p=>`<div class="dbl"><div class="row"><b class="grow">${rp(p.a.nominal)} · ${esc(namaP(p.a.proyek))}</b><button type="button" class="btn" data-act="bukan-dobel" data-k="${p.key}">Bukan dobel</button></div><div class="dbl-g">${kartu(p.a)}${kartu(p.b)}</div></div>`).join(''):'<div class="empty">Tidak ada lagi yang terlihat dobel.</div>'}`}
 function vDraf(d){
   const tunggu=d.st==='antri'||d.st==='baca',dup=!tunggu&&mirip(d),id='d-'+d.id;
   const st={antri:'<span class="pill off">Menunggu giliran</span>',baca:'<span class="pill ws">Membaca gambar… bisa sampai 1 menit</span>',ok:`<span class="pill gr">Terbaca${d.yakin==='tinggi'?'':', periksa angkanya'}</span>`,gagal:'<span class="pill bad">Tidak terbaca otomatis</span>',simpan:'<span class="pill ws">Menyimpan…</span>'}[d.st];
   return `<div class="draf" id="${id}"><img src="${d.url}" alt="Bukti transfer yang diunggah"><div class="draf-b">
-    <div class="row">${st}${d.warn?`<span class="pill wr">${esc(d.warn)}</span>`:''}${dup?`<span class="pill wr">Mirip transaksi ${tgl(dup.tanggal)} ${rp(dup.nominal)}. Cek dulu supaya tidak dobel.</span>`:''}</div>
+    <div class="row">${st}${d.warn?`<span class="pill wr">${esc(d.warn)}</span>`:''}${dup?`<span class="pill wr">Mungkin dobel: sudah ada ${rp(dup.nominal)} tanggal ${tgl(dup.tanggal)} (${esc(namaP(dup.proyek))}, diinput ${esc(NAMA[dup.oleh]||dup.oleh||'-')}). Cek dulu.</span>`:''}</div>
     ${tunggu?'':`<div class="fg">
       <label class="f">Jenis<select id="${id}-jenis" data-d="${d.id}" data-k="jenis">${opsi([['keluar','Pengeluaran'],['masuk','Pemasukan']],d.jenis)}</select></label>
       <label class="f">Nominal (Rp)<input type="text" class="uang" inputmode="numeric" id="${id}-nominal" data-d="${d.id}" data-k="nominal" value="${titik(d.nominal)}"></label>
@@ -1063,6 +1090,7 @@ async function kirimTrx(){
   bacaTrx();const e=UI.edit;
   if(!(e.nominal>0)||!e.tanggal||!e.proyek){toast('Lengkapi nominal, tanggal, dan alokasi proyek dulu.');return}
   if(!KAT[e.jenis].includes(e.kategori))e.kategori=KAT[e.jenis][0];
+  if(!e.id&&kembar(e).length&&!e.okKembar){e.okKembar=true;renderModal();toast('Ada transaksi mirip. Cek dulu; kalau memang berbeda, tekan Tetap simpan.');const w=document.getElementById('t-kembar');if(w)w.scrollIntoView({block:'center',behavior:'smooth'});return}
   let ok;
   if(!e.id)ok=await tulis(()=>simpanBaru(e,e.file),'Transaksi tersimpan');
   else ok=await tulis(async()=>{let bukti=!!e.bukti;
@@ -1088,6 +1116,8 @@ document.addEventListener('click',async ev=>{
   switch(b.dataset.act){
     case 'keluar':UI.balik=null;window.nw28.logout();S.role='';S.users=null;S.log=null;UI.akses={};S.siapP=S.siapT=false;S.proyek=[];S.trx=[];UI.user='';try{localStorage.removeItem(KEY+'-user')}catch(e){}tutup();render();break;
     case 'tutup':tutup();break;
+    case 'dobel':buka('dobel');break;
+    case 'bukan-dobel':dobelTutup.add(b.dataset.k);try{localStorage.setItem('nw28-keu-bukan-dobel',JSON.stringify([...dobelTutup]))}catch(e){}renderModal();render();break;
     case 'buang-foto':bacaTrx();if(UI.edit.fileUrl)URL.revokeObjectURL(UI.edit.fileUrl);UI.edit.file=null;UI.edit.fileUrl='';renderModal();break;
     case 'kat':UI.dk={kat:b.dataset.kat};buka('kat');break;
     case 'semua':UI.ds={q:'',jenis:'',bulan:'',kat:''};buka('semua');break;
@@ -1128,6 +1158,7 @@ document.addEventListener('input',ev=>{
   const el=ev.target;
   if(el.classList&&el.classList.contains('uang')){const n=angka(el.value);el.value=titik(n)}
   if(el.id==='cari'){UI.f.q=el.value;render();return}
+  if(UI.modal==='trx'&&(el.id==='t-nominal'||el.id==='t-tanggal')){bacaTrx();UI.edit.okKembar=false;const w=document.getElementById('t-kembar');if(w)w.innerHTML=htmlKembar(UI.edit)}
   if(el.id==='ds-q'){UI.ds.q=el.value;const bd=$('#ds-body');if(bd)bd.innerHTML=dsBody();return}
   if(el.dataset&&el.dataset.d){const d=UI.scan.find(x=>x.id===el.dataset.d);if(d){const k=el.dataset.k;d[k]=k==='nominal'?angka(el.value):el.value}}
 });
