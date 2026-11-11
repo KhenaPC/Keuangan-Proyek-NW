@@ -395,7 +395,7 @@ const warnaP=id=>id===UMUM||!P(id)?'var(--muted)':`var(--p${((+P(id).warna||0)%8
 const pillP=id=>`<span class="pill pj"><i class="dot" style="background:${warnaP(id)}"></i>${esc(namaP(id))}</span>`;
 function hitung(list){let m=0,k=0;for(const t of list){if(t.jenis==='masuk')m+=t.nominal;else k+=t.nominal}return{m,k,l:m-k,n:list.length}}
 const trxP=id=>S.trx.filter(t=>t.proyek===id);
-const labaPill=h=>!h.n?'<span class="pill off">Belum ada transaksi</span>':h.l>=0?`<span class="pill gr">▲ Untung ${rp(h.l)}</span>`:`<span class="pill bad">▼ Rugi ${rp(-h.l)}</span>`;
+const labaPill=h=>!h.n?'<span class="pill off">Belum ada transaksi</span>':h.l>=0?`<span class="pill gr">▲ Deviasi ${rpPlus(h.l)}</span>`:`<span class="pill bad">▼ Deviasi ${rpPlus(h.l)}</span>`;
 const opsi=(arr,v)=>arr.map(o=>{const [val,lab]=Array.isArray(o)?o:[o,o];return `<option value="${esc(val)}"${val===v?' selected':''}>${esc(lab)}</option>`}).join('');
 const opsiProyek=(v,kosong)=>opsi([['',kosong],...S.proyek.map(p=>[p.id,p.nama]),...(ADM()?[]:[[UMUM,'Overhead kantor (bukan proyek)']])],v);
 const bulanAda=()=>[...new Set(S.trx.map(t=>t.tanggal.slice(0,7)))].sort().reverse();
@@ -483,7 +483,7 @@ function vRingkasan(){
   <div class="tiles">
     <div class="tile m"><span class="label"><i class="dot" style="background:var(--s1)"></i>Pemasukan</span><strong class="num">${rp(t.m)}</strong><span class="small">${trx.filter(x=>x.jenis==='masuk').length} transaksi</span></div>
     <div class="tile k"><span class="label"><i class="dot" style="background:var(--s2)"></i>Pengeluaran</span><strong class="num">${rp(t.k)}</strong><span class="small">${trx.filter(x=>x.jenis!=='masuk').length} transaksi</span></div>
-    <div class="tile ${t.l>=0?'up':'dn'}"><span class="label">${t.l>=0?'▲ Untung':'▼ Rugi'} (kas)</span><strong class="num">${rp(Math.abs(t.l))}</strong><span class="small">${t.m>0?'Margin '+pct(t.l,t.m)+'% dari pemasukan':'Pemasukan dikurangi pengeluaran'}</span></div>
+    <div class="tile ${t.l>=0?'up':'dn'}"><span class="label">${t.l>=0?'▲':'▼'} Deviasi (selisih)</span><strong class="num">${rpPlus(t.l)}</strong><span class="small">Pemasukan dikurangi pengeluaran${t.m>0?' · '+pct(t.l,t.m)+'% dari pemasukan':''}</span></div>
     <div class="tile b"><span class="label">Belum ditagih dari RAB</span><strong class="num">${rp(belum)}</strong><span class="small">Total RAB ${rp(rab)}</span></div>
   </div>
   <div class="cols">
@@ -572,7 +572,7 @@ function laporan(tab){
   const sel=P(UI.rk)?UI.rk:'',trxR=sel?S.trx.filter(x=>x.proyek===sel):S.trx,t=hitung(trxR),rows=sel?barP().filter(r=>r[0]===P(sel).nama):barP(),by={};for(const x of trxR){const b=x.tanggal.slice(0,7);(by[b]=by[b]||{m:0,k:0})[x.jenis==='masuk'?'m':'k']+=x.nominal}
   const bl=Object.keys(by).sort().map(b=>[bln(b),by[b].m,by[b].k,by[b].m-by[b].k]);
   return{judul:sel?'Ringkasan '+P(sel).nama:'Ringkasan',berkas:sel?'Ringkasan-'+P(sel).nama.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40):'Ringkasan',sub:(sel?P(sel).nama:'Semua proyek')+', sampai '+tgl(hariIni()),sheets:[
-    {nama:'Ringkasan',kepala:['Uraian','Nilai'],baris:[['Total pemasukan',t.m],['Total pengeluaran',t.k],[t.l>=0?'Untung (kas)':'Rugi (kas)',t.l],['Total RAB',jml(rows,3)],['Belum ditagih dari RAB',jml(rows,9)]]},
+    {nama:'Ringkasan',kepala:['Uraian','Nilai'],baris:[['Total pemasukan',t.m],['Total pengeluaran',t.k],['Deviasi (pemasukan − pengeluaran)',t.l],['Total RAB',jml(rows,3)],['Belum ditagih dari RAB',jml(rows,9)]]},
     {nama:'Per bulan',kepala:['Bulan','Pemasukan','Pengeluaran','Selisih'],baris:bl,kaki:['Total',t.m,t.k,t.l]},
     {nama:'Pengeluaran per kategori',kepala:['Kategori','Nilai','Porsi'],baris:kat(trxR,false).map(([k,v])=>[k,v,pct(v,t.k)+'%']),kaki:['Total',t.k,'']},
     {nama:'Per proyek',kepala:kepP,baris:rows,kaki:kakiP(rows)}]};
