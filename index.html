@@ -245,6 +245,12 @@ body.out .pasang{max-width:390px;margin:16px auto 0}
 .tile.klik::after{content:"Rincian ›";position:absolute;right:14px;top:13px;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);opacity:0;transition:opacity .15s}.tile.klik:hover::after,.tile.klik:focus-visible::after{opacity:1}
 .pill.cf{background:#2d2340;color:#c3b5f5}
 .cf-hit{display:flex;flex-wrap:wrap;gap:4px 12px;padding:8px 10px;border-radius:8px;background:var(--surface-2);color:var(--muted)}.cf-hit b{color:var(--ink)}
+.rab-box{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.rab-head,.rab-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.6fr) 34px;gap:8px;align-items:center}
+.rab-head{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.rab-row input{background:var(--surface)}.rab-row .x:disabled{opacity:.3;cursor:not-allowed}
+.rab-mini{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:var(--surface-2);font-size:12.5px}.rab-mini>div{display:flex;gap:10px;align-items:baseline}.rab-mini .sub{display:block;color:var(--faint);font-size:11.5px}
+@media (max-width:640px){.rab-head{display:none}.rab-row{grid-template-columns:1fr 1fr 34px;padding-bottom:8px;border-bottom:1px dashed var(--line)}.rab-row input[id^=r-skema]{grid-column:1/3;grid-row:2}}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -466,14 +472,19 @@ const feeP=p=>isCF(p)?(+p.fee||0):0;
 const fmtPct=n=>String(+(+n).toFixed(2)).replace('.',',');
 const labelTipe=p=>isCF(p)?`Cost & fee ${fmtPct(feeP(p))}%`:'RAB';
 /* nilai yang bisa ditagih ke klien: RAB (proyek RAB) atau biaya + fee (proyek cost & fee) */
+/* daftar RAB satu proyek (bisa lebih dari satu: tahap, addendum, pekerjaan tambah) */
+const rabItems=p=>Array.isArray(p&&p.rabList)&&p.rabList.length?p.rabList:(+(p&&p.rab)?[{nama:'RAB',nilai:+p.rab,skema:''}]:[]);
+function htmlRabMini(p){const it=rabItems(p);if(it.length<2&&!(it[0]&&it[0].skema))return'';
+  return `<div class="rab-mini">${it.map(r=>`<div><span class="grow">${esc(r.nama||'RAB')}${r.skema?`<span class="sub">${esc(r.skema)}</span>`:''}</span><b class="num">${rp(+r.nilai||0)}</b></div>`).join('')}</div>`}
 function tagihan(p,h){h=h||hitung(trxP(p.id));
   if(isCF(p)){const fee=Math.round(h.k*feeP(p)/100),basis=h.k+fee;return{cf:true,basis,biaya:h.k,fee,masuk:h.m,belum:Math.max(0,basis-h.m),lebih:Math.max(0,h.m-basis)}}
   const r=+p.rab||0;return{cf:false,basis:r,biaya:h.k,fee:0,masuk:h.m,belum:r?Math.max(0,r-h.m):0,lebih:r?Math.max(0,h.m-r):0}}
 function kartuProyek(p,ubah){
   const h=hitung(trxP(p.id)),rab=+p.rab||0,tg=tagihan(p,h),cf=tg.cf;
   return `<article class="panel"><div class="k-head"><i class="dot" style="background:${warnaP(p.id)}"></i><h3>${esc(p.nama)}</h3><span class="pill ${p.status==='selesai'?'off':'ws'}">${p.status==='selesai'?'Selesai':'Berjalan'}</span><span class="pill ${cf?'cf':'off'}">${esc(labelTipe(p))}</span>${p.contoh?'<span class="pill wr">Contoh</span>':''}
-    <div class="k-total"><div class="label">${cf?'Tagihan (biaya + fee)':'RAB'}</div><strong>${cf?rp(tg.basis):rab?rp(rab):'Belum diisi'}</strong></div></div>
+    <div class="k-total"><div class="label">${cf?'Tagihan (biaya + fee)':rabItems(p).length>1?'Total '+rabItems(p).length+' RAB':'RAB'}</div><strong>${cf?rp(tg.basis):rab?rp(rab):'Belum diisi'}</strong></div></div>
     ${p.klien?`<div class="small muted">Klien: ${esc(p.klien)}</div>`:''}
+    ${cf?'':htmlRabMini(p)}
     ${cf?`${meter('Pemasukan',h.m,tg.basis,'m','tagihan')}<div class="mt"><div class="mt-h"><span><i class="dot" style="background:var(--s2)"></i> Pengeluaran</span><span class="num"><b>${rp(h.k)}</b> · berdasarkan realisasi belanja</span></div><div class="mt-t"><b class="k" style="width:${tg.basis?Math.min(100,pct(h.k,tg.basis)):0}%"></b></div></div><div class="cf-hit small"><span>Biaya <b class="num">${rp(tg.biaya)}</b></span><span>+ fee ${fmtPct(feeP(p))}% <b class="num">${rp(tg.fee)}</b></span><span>= tagihan <b class="num">${rp(tg.basis)}</b></span></div>`
       :`${meter('Pemasukan',h.m,rab,'m')}${meter('Pengeluaran',h.k,rab,'k')}`}
     ${ubah&&OWN()?shareBox(p):''}<div class="row">${labaPill(h)}${tg.basis>0?`<span class="small muted">Belum ditagih: <b class="num">${rp(tg.belum)}</b></span>`:''}
@@ -575,7 +586,7 @@ function laporan(tab){
         baris:list.map(t=>[tgl(t.tanggal),t.jenis==='masuk'?'Masuk':'Keluar',t.ket||'',t.pihak||'',namaP(t.proyek),t.kategori||'',t.bank||'',t.ref||'',t.jenis==='masuk'?t.nominal:'',t.jenis==='masuk'?'':t.nominal,t.bukti?'Ada':'Tidak',t.oleh||'']),
         kaki:['Total','','','','','','','',h.m,h.k,'','']},
        {nama:'Selisih',kepala:['Uraian','Nilai'],baris:[['Total masuk',h.m],['Total keluar',h.k],[h.l>=0?'Laba':'Rugi',h.l]]}]}}
-  if(tab==='proyek'){const rows=barP();return{judul:'Proyek dan RAB',berkas:'Proyek',sub:S.proyek.length+' proyek',sheets:[{nama:'Proyek',kepala:kepP,baris:rows,kaki:kakiP(rows)}]}}
+  if(tab==='proyek'){const rows=barP(),rr=S.proyek.filter(p=>!isCF(p)).flatMap(p=>rabItems(p).map(r=>[p.nama,r.nama||'RAB',+r.nilai||0,r.skema||'']));return{judul:'Proyek dan RAB',berkas:'Proyek',sub:S.proyek.length+' proyek',sheets:[{nama:'Proyek',kepala:kepP,baris:rows,kaki:kakiP(rows)},{nama:'Rincian RAB',kepala:['Proyek','Uraian RAB','Nilai','Skema pembayaran'],baris:rr,kaki:['Total','',jml(rr,2),'']}]}}
   if(tab==='laba'){const pl=UI.pl,list=S.trx.filter(t=>!pl.bulan||t.tanggal.startsWith(pl.bulan)),sc=pl.proyek?list.filter(t=>t.proyek===pl.proyek):list,hs=hitung(sc);
     const rows=S.proyek.map(p=>{const h=hitung(list.filter(t=>t.proyek===p.id)),a=hitung(trxP(p.id)),r=+p.rab||0;return [p.nama,r,h.m,h.k,h.l,h.m>0?pct(h.l,h.m)+'%':'-',tagihan(p,a).belum]});
     const o=hitung(list.filter(t=>t.proyek===UMUM)),tot=hitung(list);rows.push(['Overhead kantor',0,o.m,o.k,o.l,'-',0]);
@@ -872,7 +883,7 @@ function mTagih(){
     <div class="tile"><span class="label">Belum ditagih</span><strong class="num">${rp(sum('belum'))}</strong>${sum('lebih')?`<span class="small">Kelebihan bayar ${rp(sum('lebih'))}</span>`:''}</div>
   </div>
   ${rows.length?`<div class="tbl"><table><thead><tr><th>Proyek</th><th>Tipe</th><th class="r">RAB</th><th class="r">Biaya (pengeluaran)</th><th class="r">Fee</th><th class="r">Nilai tagihan</th><th class="r">Sudah masuk</th><th class="r">% masuk</th><th class="r">Belum ditagih</th></tr></thead><tbody>
-  ${rows.map(r=>`<tr><td>${pillP(r.p.id)}</td><td style="white-space:nowrap">${esc(labelTipe(r.p))}</td><td class="r">${+r.p.rab?rp(+r.p.rab):'-'}</td><td class="r">${rp(r.biaya)}</td><td class="r">${r.cf?rp(r.fee):'-'}</td><td class="r">${r.basis?rp(r.basis):'-'}</td><td class="r">${rp(r.masuk)}</td><td class="r">${r.basis?pct(r.masuk,r.basis)+'%':'-'}</td><td class="r"><b>${rp(r.belum)}</b>${r.lebih?`<span class="sub">lebih ${rp(r.lebih)}</span>`:''}</td></tr>`).join('')}
+  ${rows.map(r=>`<tr><td>${pillP(r.p.id)}</td><td style="white-space:nowrap">${esc(labelTipe(r.p))}</td><td class="r">${+r.p.rab?rp(+r.p.rab):'-'}${!r.cf&&rabItems(r.p).length>1?rabItems(r.p).map(x=>`<span class="sub">${esc(x.nama)}: ${rp(+x.nilai||0)}</span>`).join(''):''}</td><td class="r">${rp(r.biaya)}</td><td class="r">${r.cf?rp(r.fee):'-'}</td><td class="r">${r.basis?rp(r.basis):'-'}</td><td class="r">${rp(r.masuk)}</td><td class="r">${r.basis?pct(r.masuk,r.basis)+'%':'-'}</td><td class="r"><b>${rp(r.belum)}</b>${r.lebih?`<span class="sub">lebih ${rp(r.lebih)}</span>`:''}</td></tr>`).join('')}
   </tbody><tfoot><tr><td colspan="3">Total</td><td class="r">${rp(sum('biaya'))}</td><td class="r">${rp(sum('fee'))}</td><td class="r">${rp(sum('basis'))}</td><td class="r">${rp(sum('masuk'))}</td><td></td><td class="r">${rp(sum('belum'))}</td></tr></tfoot></table></div>`:'<div class="empty">Belum ada proyek dengan RAB atau cost &amp; fee.</div>'}`;
 }
 function mSemua(){
@@ -915,6 +926,13 @@ function mTrx(){
     ${baru||S.ro?'':'<button class="btn bad" type="button" style="margin-left:auto" data-act="hapus-trx">Hapus</button>'}</div>
   </form>`;
 }
+function formRab(e){const it=e.rabEdit||(e.rabEdit=rabItems(e).map(r=>({...r})));if(!it.length)it.push({nama:'',nilai:0,skema:''});
+  return `<div class="rab-box"><div class="row"><b class="grow">Daftar RAB</b><span class="small muted">Total RAB <b class="num" id="rab-total">${rp(it.reduce((a,r)=>a+(+r.nilai||0),0))}</b></span></div>
+  <div class="rab-head small muted"><span>Uraian RAB</span><span>Nilai (Rp)</span><span>Skema pembayaran</span><span></span></div>
+  ${it.map((r,i)=>`<div class="rab-row"><input type="text" id="r-nama-${i}" value="${esc(r.nama||'')}" placeholder="Contoh: RAB tahap 1, Addendum" aria-label="Uraian RAB ${i+1}"><input type="text" class="uang" inputmode="numeric" id="r-nilai-${i}" value="${titik(+r.nilai||0)}" placeholder="0" aria-label="Nilai RAB ${i+1}"><input type="text" id="r-skema-${i}" value="${esc(r.skema||'')}" placeholder="Contoh: DP 50%, termin 40%, pelunasan 10%" aria-label="Skema pembayaran RAB ${i+1}"><button type="button" class="x" data-act="rab-hapus" data-i="${i}" aria-label="Hapus RAB ${i+1}" ${it.length<2?'disabled':''}>×</button></div>`).join('')}
+  <div class="row"><button type="button" class="btn" data-act="rab-tambah">+ Tambah RAB</button><span class="small muted grow">Bisa lebih dari satu: RAB tahap, addendum, pekerjaan tambah. Pemasukan dan pengeluaran dibandingkan dengan totalnya.</span></div></div>`}
+function bacaRab(){const it=UI.edit&&UI.edit.rabEdit;if(!it)return;it.forEach((r,i)=>{const g=k=>{const x=document.getElementById(`r-${k}-${i}`);return x?x.value.trim():''};r.nama=g('nama').slice(0,80);r.nilai=angka(g('nilai'));r.skema=g('skema').slice(0,160)})}
+function bacaProyek(){const v=id=>{const x=document.getElementById(id);return x?x.value.trim():''};bacaRab();Object.assign(UI.edit,{nama:v('p-nama'),klien:v('p-klien'),status:v('p-status')||'jalan'});const r=document.getElementById('p-rab');if(r)UI.edit.rab=angka(r.value);const fe=document.getElementById('p-fee');if(fe)UI.edit.fee=parseFloat(fe.value.replace(',','.'))||0}
 function mProyek(){
   const e=UI.edit,baru=!e.id,ada=!baru&&trxP(e.id).length;
   return `${kepalaDlg(baru?'Tambah proyek':'Ubah proyek')}
@@ -923,9 +941,9 @@ function mProyek(){
     <label class="f">Klien (opsional)<input type="text" id="p-klien" value="${esc(e.klien)}"></label>
     <label class="f">Tipe proyek<select id="p-tipe">${opsi([['rab','RAB (nilai kontrak tetap)'],['cf','Cost & fee']],isCF(e)?'cf':'rab')}</select></label>
     ${isCF(e)?`<label class="f">Fee (%)<input type="text" inputmode="decimal" id="p-fee" value="${e.fee?fmtPct(e.fee):''}" placeholder="Contoh: 10" required></label>`:''}
-    <label class="f">${isCF(e)?'Estimasi biaya / RAB (Rp, opsional)':'Angka RAB (Rp)'}<input type="text" class="uang" inputmode="numeric" id="p-rab" value="${titik(e.rab)}" placeholder="0"></label>
+    ${isCF(e)?`<label class="f">Estimasi biaya / RAB (Rp, opsional)<input type="text" class="uang" inputmode="numeric" id="p-rab" value="${titik(e.rab)}" placeholder="0"></label>`:''}
     <label class="f">Status<select id="p-status">${opsi([['jalan','Berjalan'],['selesai','Selesai']],e.status)}</select></label></div>
-    <div class="small muted">${isCF(e)?'Cost & fee: yang ditagih ke klien = semua pengeluaran proyek + fee sekian persen dari pengeluaran itu. Estimasi biaya hanya untuk pembanding pengeluaran.':'Cukup satu angka total RAB. Pemasukan dan pengeluaran proyek akan dibandingkan dengan angka ini.'}</div>
+    ${isCF(e)?'<div class="small muted">Cost &amp; fee: yang ditagih ke klien = semua pengeluaran proyek + fee sekian persen dari pengeluaran itu. Estimasi biaya hanya untuk pembanding pengeluaran.</div>':formRab(e)}
     <div class="row"><button class="btn pri" type="submit">Simpan</button>${baru?'':ada?`<span class="small muted" style="margin-left:auto">Punya ${ada} transaksi, jadi tidak bisa dihapus.</span>`:'<button class="btn bad" type="button" style="margin-left:auto" data-act="hapus-proyek">Hapus proyek</button>'}</div></form>`;
 }
 function mSandi(){return `${kepalaDlg('Ganti password')}
@@ -961,9 +979,9 @@ function muatLog(lanjut){
   const before=lanjut&&S.log&&S.log.length?S.log[S.log.length-1].id:null;
   window.nw28.log(before).then(l=>{l=l||[];S.log=(lanjut&&S.log?S.log:[]).concat(l);S.logHabis=l.length<200;logLoading=false;render()},()=>{logLoading=false;S.log=S.log||[];toast('Gagal memuat riwayat.')});
 }
-const LBL={tanggal:'Tanggal',jenis:'Jenis',nominal:'Nominal',proyek:'Proyek',kategori:'Kategori',ket:'Keterangan',pihak:'Pihak',bank:'Bank/metode',catatan:'Catatan',nama:'Nama proyek',klien:'Klien',rab:'RAB',status:'Status',tipe:'Tipe proyek',fee:'Fee (%)'};
+const LBL={tanggal:'Tanggal',jenis:'Jenis',nominal:'Nominal',proyek:'Proyek',kategori:'Kategori',ket:'Keterangan',pihak:'Pihak',bank:'Bank/metode',catatan:'Catatan',nama:'Nama proyek',klien:'Klien',rab:'RAB',status:'Status',tipe:'Tipe proyek',fee:'Fee (%)',rabList:'Rincian RAB'};
 const AKSI={tambah:['Tambah','gr'],ubah:['Ubah','ws'],hapus:['Hapus','bad'],impor:['Impor','wr'],akses:['Akses admin','ws'],bukti:['Foto bukti','off'],password:['Ganti password','off']};
-function nilaiLog(k,v){if(v==null||v==='')return '–';if(k==='nominal'||k==='rab')return rp(+v);if(k==='tanggal')return tgl(v);if(k==='proyek')return namaP(v);if(k==='jenis')return v==='masuk'?'Pemasukan':'Pengeluaran';if(k==='status')return v==='selesai'?'Selesai':'Berjalan';return String(v)}
+function nilaiLog(k,v){if(v==null||v==='')return '–';if(k==='rabList')return Array.isArray(v)&&v.length?v.map(r=>`${r.nama} ${rp(+r.nilai||0)}${r.skema?' ('+r.skema+')':''}`).join('; '):'–';if(k==='nominal'||k==='rab')return rp(+v);if(k==='tanggal')return tgl(v);if(k==='proyek')return namaP(v);if(k==='jenis')return v==='masuk'?'Pemasukan':'Pengeluaran';if(k==='status')return v==='selesai'?'Selesai':'Berjalan';return String(v)}
 function waktuLog(iso){const d=new Date(iso);return `${d.getDate()} ${BLN[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}`}
 function isiLog(e){
   const d=e.sesudah||e.sebelum||{},pn=e.proyekNama||(e.proyek?namaP(e.proyek):'');
@@ -1148,8 +1166,9 @@ async function kirimTrx(){
   if(ok)tutup();
 }
 async function kirimProyek(){
-  const e=UI.edit,v=id=>document.getElementById(id).value.trim(),tp=v('p-tipe')==='cf'?'cf':'rab',fe=document.getElementById('p-fee'),x={nama:v('p-nama').slice(0,80),klien:v('p-klien').slice(0,80),rab:angka(v('p-rab')),status:v('p-status')==='selesai'?'selesai':'jalan',tipe:tp,fee:tp==='cf'&&fe?Math.min(100,Math.max(0,parseFloat(fe.value.trim().replace(',','.'))||0)):0};
+  const e=UI.edit,v=id=>document.getElementById(id).value.trim(),tp=v('p-tipe')==='cf'?'cf':'rab',fe=document.getElementById('p-fee'),x={nama:v('p-nama').slice(0,80),klien:v('p-klien').slice(0,80),rab:tp==='cf'?angka(v('p-rab')):0,status:v('p-status')==='selesai'?'selesai':'jalan',tipe:tp,fee:tp==='cf'&&fe?Math.min(100,Math.max(0,parseFloat(fe.value.trim().replace(',','.'))||0)):0};
   if(tp==='cf'&&!(x.fee>0)){toast('Isi persen fee untuk proyek cost & fee.');return}
+  if(tp!=='cf'){bacaRab();const it=(UI.edit.rabEdit||[]).filter(r=>r.nilai>0||r.nama).map((r,i)=>({nama:r.nama||('RAB '+(i+1)),nilai:+r.nilai||0,skema:r.skema||''}));x.rabList=it;x.rab=it.reduce((a,r)=>a+r.nilai,0)}
   if(!x.nama){toast('Isi nama proyek dulu.');return}
   const ok=e.id?await tulis(()=>S.db.doc('proyek/'+e.id).update({...x,editOleh:UI.user,editPada:Date.now()}),'Proyek diperbarui')
     :await tulis(()=>S.db.collection('proyek').add({...x,warna:S.proyek.reduce((a,p)=>Math.max(a,(+p.warna||0)+1),0),oleh:UI.user,pada:Date.now()}),'Proyek ditambahkan');
@@ -1167,6 +1186,8 @@ document.addEventListener('click',async ev=>{
     case 'keluar':UI.balik=null;window.nw28.logout();S.role='';S.users=null;S.log=null;UI.akses={};S.siapP=S.siapT=false;S.proyek=[];S.trx=[];UI.user='';try{localStorage.removeItem(KEY+'-user')}catch(e){}tutup();render();break;
     case 'tutup':tutup();break;
     case 'dobel':buka('dobel');break;
+    case 'rab-tambah':bacaProyek();UI.edit.rabEdit.push({nama:'',nilai:0,skema:''});renderModal();{const x=document.getElementById('r-nama-'+(UI.edit.rabEdit.length-1));if(x)x.focus()}break;
+    case 'rab-hapus':bacaProyek();if(UI.edit.rabEdit.length>1)UI.edit.rabEdit.splice(+b.dataset.i,1);renderModal();break;
     case 'rk-masuk':UI.ds={q:'',jenis:'masuk',bulan:'',kat:''};buka('semua');break;
     case 'rk-keluar':UI.ds={q:'',jenis:'keluar',bulan:'',kat:''};buka('semua');break;
     case 'rk-dev':buka('deviasi');break;
@@ -1212,6 +1233,7 @@ document.addEventListener('input',ev=>{
   const el=ev.target;
   if(el.classList&&el.classList.contains('uang')){const n=angka(el.value);el.value=titik(n)}
   if(el.id==='cari'){UI.f.q=el.value;render();return}
+  if(UI.modal==='proyek'&&/^r-nilai-/.test(el.id)){bacaRab();const t=document.getElementById('rab-total');if(t)t.textContent=rp(UI.edit.rabEdit.reduce((a,r)=>a+(+r.nilai||0),0))}
   if(UI.modal==='trx'&&(el.id==='t-nominal'||el.id==='t-tanggal')){bacaTrx();UI.edit.okKembar=false;const w=document.getElementById('t-kembar');if(w)w.innerHTML=htmlKembar(UI.edit)}
   if(el.id==='ds-q'){UI.ds.q=el.value;const bd=$('#ds-body');if(bd)bd.innerHTML=dsBody();return}
   if(el.dataset&&el.dataset.d){const d=UI.scan.find(x=>x.id===el.dataset.d);if(d){const k=el.dataset.k;d[k]=k==='nominal'?angka(el.value):el.value}}
@@ -1223,7 +1245,7 @@ document.addEventListener('change',ev=>{
   if(el.dataset.ak){const u=el.dataset.ak;UI.akses=UI.akses||{};UI.akses[u]=UI.akses[u]||new Set(((S.users||[]).find(x=>x.user===u)||{}).akses||[]);el.checked?UI.akses[u].add(el.value):UI.akses[u].delete(el.value);const c=document.getElementById('akn-'+u);if(c)c.textContent=UI.akses[u].size+' dari '+S.proyek.length+' proyek dipilih';return}
   if(el.dataset.ds){UI.ds[el.dataset.ds]=el.value;const bd=$('#ds-body');if(bd)bd.innerHTML=dsBody();return}
   if(el.dataset.lg){UI.lg=UI.lg||{};UI.lg[el.dataset.lg]=el.value;render();return}
-  if(el.id==='p-tipe'&&UI.modal==='proyek'){const v=id=>{const x=document.getElementById(id);return x?x.value.trim():''};Object.assign(UI.edit,{nama:v('p-nama'),klien:v('p-klien'),rab:angka(v('p-rab')),status:v('p-status'),tipe:el.value});renderModal();return}
+  if(el.id==='p-tipe'&&UI.modal==='proyek'){bacaProyek();UI.edit.tipe=el.value;renderModal();return}
   if(el.id==='rk-proyek'){UI.rk=el.value;render()}
   else if(el.dataset.flt){UI.f[el.dataset.flt]=el.value;render()}
   else if(el.dataset.pl){UI.pl[el.dataset.pl]=el.value;render()}
