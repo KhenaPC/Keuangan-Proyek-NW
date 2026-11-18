@@ -255,6 +255,13 @@ body.out .pasang{max-width:390px;margin:16px auto 0}
 .seg-kb label{font-size:13px}
 .ak .grow{display:flex;flex-direction:column;min-width:0}.ak .sub{display:block;font-size:12px;color:var(--faint);font-weight:400}
 .kb-bayar{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px dashed #4a3812;border-radius:12px;background:var(--warn-soft)}
+.badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--amber);color:#1a1300;font-size:11.5px;font-weight:700;display:inline-grid;place-items:center;font-family:var(--f-mono)}
+.badge.merah{background:#e5484d;color:#fff;box-shadow:0 0 10px rgba(229,72,77,.6)}
+nav.tabs button:has(.badge)::after{display:none}
+.btn-s{min-height:28px;padding:3px 12px;font-size:12px;margin-top:4px}
+.kb-ingat{border-color:#7a3a1a;background:linear-gradient(90deg,rgba(240,88,44,.18),var(--warn-soft))}
+.ak>.btn{flex:none}
+@media (max-width:900px){.badge{margin-left:6px}}
 #dlbox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 #dlbox>span{display:flex;flex-direction:column;min-width:0}#dlbox .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}#dlbox a.btn{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.mt-t b,.hb-t b,.bc-g b{transition:width .25s,height .25s}}
@@ -384,7 +391,7 @@ const S={db:null,sample:null,bisaScan:false,ro:false,siapP:false,siapT:false,mat
 S.role='';S.users=null;
 const ADM=()=>S.role==='admin',OWN=()=>S.role==='owner';
 function muatPeran(){if(window.nw28&&window.nw28.me)window.nw28.me().then(m=>{if(m&&m.status==='ok'){S.role=m.role;if((!OWN()&&UI.tab==='akses')||(ADM()&&UI.tab==='riwayat'))UI.tab='ringkasan';render()}}).catch(()=>{})}
-const UI={tab:'ringkasan',user:'',loginErr:false,loginU:'',f:{proyek:'',jenis:'',bulan:'',q:''},pl:{bulan:'',proyek:''},kb:{proyek:'',toko:'',status:'belum',q:''},rk:'',modal:'',edit:null,scan:[],bukti:''};
+const UI={tab:'ringkasan',user:'',loginErr:false,loginU:'',f:{proyek:'',jenis:'',bulan:'',q:'',bayar:''},pl:{bulan:'',proyek:''},kb:{proyek:'',toko:'',status:'belum',q:''},rk:'',modal:'',edit:null,scan:[],bukti:''};
 try{const u=localStorage.getItem(KEY+'-user');if(u&&USERS[u]&&localStorage.getItem(KEY+'-token'))UI.user=u;const t=localStorage.getItem(KEY+'-tab');if(TABS.some(x=>x[0]===t))UI.tab=t}catch(e){}
 
 const $=s=>document.querySelector(s);
@@ -415,9 +422,12 @@ const opsiProyek=(v,kosong)=>opsi([['',kosong],...S.proyek.map(p=>[p.id,p.nama])
 const bulanAda=()=>[...new Set(S.trx.map(t=>t.tanggal.slice(0,7)))].sort().reverse();
 
 /* ---------- tampilan ---------- */
+function badgeKB(){if(!S.siapT)return'';const u=S.trx.filter(kbUrgen);if(!u.length)return'';const tel=u.some(kbTelat);return `<span class="badge ${tel?'merah':''}" aria-label="${u.length} kontrabon perlu segera dibayar">${u.length}</span>`}
+function bannerKB(){const u=S.trx.filter(kbUrgen);if(!u.length)return'';const tel=u.filter(kbTelat),sum=a=>a.reduce((x,t)=>x+t.nominal,0);
+  return `<div class="banner w kb-ingat"><span class="grow"><b>⚠ Jangan lupa bayar kontrabon:</b> ${tel.length?`<b>${tel.length} nota sudah lewat jatuh tempo (${rp(sum(tel))})</b>`:''}${tel.length&&u.length>tel.length?' · ':''}${u.length>tel.length?`${u.length-tel.length} nota jatuh tempo ≤3 hari (${rp(sum(u)-sum(tel))})`:''}</span><button class="btn" data-act="kb-urgen">Lihat &amp; bayar</button></div>`}
 function renderHead(){
   const on=!!UI.user;
-  $('#tabs').innerHTML=on?TABS.concat(OWN()?[['akses','Akses Admin']]:[]).concat(S.role&&!ADM()?[['riwayat','Riwayat']]:[]).map(([k,l])=>`<button data-tab="${k}"${UI.tab===k?' aria-current="page"':''}>${l}</button>`).join(''):'';
+  $('#tabs').innerHTML=on?TABS.concat(OWN()?[['akses','Akses Admin']]:[]).concat(S.role&&!ADM()?[['riwayat','Riwayat']]:[]).map(([k,l])=>`<button data-tab="${k}"${UI.tab===k?' aria-current="page"':''}>${l}${k==='kontrabon'?badgeKB():''}</button>`).join(''):'';
   document.body.classList.toggle('out',!on);{const c=document.getElementById('crumb'),d=document.getElementById('crumbDate'),t=TABS.concat([['akses','Akses Admin'],['riwayat','Riwayat']]).find(x=>x[0]===UI.tab);if(c)c.textContent=t?t[1]:'Ringkasan';if(d)d.textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
   $('#who').innerHTML=on?`<span>Masuk sebagai <b>${esc(NAMA[UI.user]||UI.user)}</b>${S.role?` <span class="pill ${OWN()?'gr':'ws'}">${PERAN[S.role]}</span>`:''}</span><button data-act="sandi">Ganti password</button><button data-act="keluar">Keluar</button>`:'';
 }
@@ -430,8 +440,10 @@ function render(){
   const contoh=S.proyek.some(p=>p.contoh)||S.trx.some(t=>t.contoh);
   app.innerHTML=(contoh?`<div class="banner w"><span class="grow"><b>Yang tampil sekarang masih data contoh.</b> Angka dan nama proyeknya bukan milik NW28, hanya untuk memperlihatkan cara kerja aplikasi.</span>${S.ro?'':'<button class="btn" data-act="hapus-contoh">Hapus semua data contoh</button>'}</div>`:'')
     +(S.ro?'<div class="banner"><span>Akun ini hanya bisa melihat. Minta Khena menaikkan aksesnya supaya bisa menginput.</span></div>':'')
+    +(UI.tab!=='ringkasan'&&UI.tab!=='kontrabon'?bannerKB():'')
     +(({ringkasan:vRingkasan,transaksi:vTransaksi,kontrabon:vKontrabon,proyek:vProyek,laba:vLaba,akses:vAkses,riwayat:vRiwayat})[UI.tab]||vRingkasan)()+kaki();
   if(fid){const el=document.getElementById(fid);if(el){el.focus();try{if(pos!=null)el.setSelectionRange(pos,pos)}catch(e){}}}
+  setTimeout(cekIngatKB,600);
 }
 const kaki=()=>'<div class="foot"><i class="lg-mark" aria-hidden="true"></i><span>Natawira Dwi Ashta</span></div>';
 function vLogin(){return `<section class="panel login"><i class="lg-full" role="img" aria-label="Logo Natawira Dwi Ashta"></i><div><div class="label">Masuk</div><h2>NW28 Keuangan</h2></div>
@@ -526,7 +538,7 @@ function vRingkasan(){
   ${trx.length?`<div class="tbl"><table>${kepalaTrx}<tbody>${trx.slice(0,6).map(barisTrx).join('')}</tbody></table></div>`:'<div class="empty">Belum ada transaksi.</div>'}</section>`;
 }
 function saring(){const f=UI.f,q=f.q.trim().toLowerCase();
-  return S.trx.filter(t=>(!f.proyek||t.proyek===f.proyek)&&(!f.jenis||t.jenis===f.jenis)&&(!f.bulan||t.tanggal.startsWith(f.bulan))&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,namaP(t.proyek)].join(' ').toLowerCase().includes(q)))}
+  return S.trx.filter(t=>(!f.proyek||t.proyek===f.proyek)&&(!f.jenis||t.jenis===f.jenis)&&cocokBayar(t,f.bayar)&&(!f.bulan||t.tanggal.startsWith(f.bulan))&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,namaP(t.proyek)].join(' ').toLowerCase().includes(q)))}
 function vTransaksi(){
   const list=saring(),h=hitung(list),f=UI.f;
   return `<div class="row"><h2 class="grow">Transaksi</h2>${tombolInput()}${tombolUnduh()}</div>${(()=>{const n=pasangDobel().length;return n?`<div class="banner w"><span class="grow"><b>${n} pasang transaksi kemungkinan dobel.</b> <span class="small">Nominal, proyek, dan tanggalnya hampir sama. Cek supaya tidak terhitung dua kali.</span></span><button class="btn" data-act="dobel">Periksa</button></div>`:''})()}
@@ -535,6 +547,7 @@ function vTransaksi(){
     <label class="f">Proyek<select id="f-proyek" data-flt="proyek">${opsiProyek(f.proyek,'Semua proyek')}</select></label>
     <label class="f">Jenis<select id="f-jenis" data-flt="jenis">${opsi([['','Masuk dan keluar'],['masuk','Pemasukan'],['keluar','Pengeluaran']],f.jenis)}</select></label>
     <label class="f">Bulan<select id="f-bulan" data-flt="bulan">${opsi([['','Semua bulan'],...bulanAda().map(b=>[b,bln(b)])],f.bulan)}</select></label>
+    <label class="f">Pembayaran<select id="f-bayar" data-flt="bayar">${opsi(OPSI_BAYAR,f.bayar)}</select></label>
   </div>
   ${list.length?`<div class="tbl"><table>${kepalaTrx}<tbody>${list.map(barisTrx).join('')}</tbody>
     <tfoot><tr><td colspan="4">${list.length} transaksi · masuk ${rp(h.m)} · keluar ${rp(h.k)}</td><td class="r">${rpPlus(h.l)}</td><td></td></tr></tfoot></table></div>
@@ -588,7 +601,7 @@ function laporan(tab){
   if(tab==='kontrabon'){const list=kbList(),hi=hariIni(),st=t=>kbStatus(t).teks;
     const rows=list.map(t=>[tgl(t.tanggal),t.ref||'',kunciToko(t),t.ket||'',namaP(t.proyek),t.jatuhTempo?tgl(t.jatuhTempo):'-',t.tglBayar?selisihHari(t.tanggal,t.tglBayar):selisihHari(t.tanggal,hi),t.nominal,st(t),t.tglBayar?tgl(t.tglBayar):'',t.bankBayar||'']);
     const toko={};list.forEach(t=>{const k=kunciToko(t),x=toko[k]=toko[k]||[k,0,0,0];x[1]++;if(t.tglBayar)x[3]+=t.nominal;else x[2]+=t.nominal});const tr=Object.values(toko).sort((a,b)=>b[2]-a[2]);
-    const f=UI.kb;return{judul:'Kontrabon',berkas:'Kontrabon',sub:[f.proyek?namaP(f.proyek):'Semua proyek',f.toko||'Semua toko',{belum:'Belum dibayar',lunas:'Sudah dibayar',semua:'Semua status'}[f.status]].join(', '),sheets:[
+    const f=UI.kb;return{judul:'Kontrabon',berkas:'Kontrabon',sub:[f.proyek?namaP(f.proyek):'Semua proyek',f.toko||'Semua toko',{belum:'Belum dibayar',urgen:'Perlu segera dibayar',lunas:'Sudah dibayar',semua:'Semua status'}[f.status]].join(', '),sheets:[
       {nama:'Kontrabon',kepala:['Tgl nota','No. nota','Toko','Keterangan','Proyek','Jatuh tempo','Umur (hari)','Nominal','Status','Tgl dibayar','Dibayar lewat'],pdf:[0,2,3,4,5,7,8],baris:rows,kaki:['Total','','','','','','',jml(rows,7),'','','']},
       {nama:'Per toko',kepala:['Toko','Jumlah nota','Belum dibayar','Sudah dibayar'],baris:tr,kaki:['Total',jml(tr,1),jml(tr,2),jml(tr,3)]}]}}
   if(tab==='transaksi'){const f=UI.f,list=saring(),h=hitung(list);
@@ -825,7 +838,7 @@ function buka(m){UI.modal=m;const tp=document.getElementById('tip');if(tp)tp.hid
 function tutup(){UI.modal='';UI.edit=null;UI.bukti='';if(!UI.scan.some(d=>d.st!=='beres')){UI.scan.forEach(d=>URL.revokeObjectURL(d.url));UI.scan=[]}$('#modal').hidden=true;$('#modal').innerHTML='';if(UI.balik){const m=UI.balik;UI.balik=null;buka(m)}}
 function renderModal(){
   const el=$('#modal');if(!UI.modal){el.hidden=true;return}
-  el.innerHTML=`<div class="dlg${['semua','kat','dobel','deviasi','tagih'].includes(UI.modal)?' lebar':''}" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi,kat:mKat,semua:mSemua,dobel:mDobel,deviasi:mDeviasi,tagih:mTagih,bayarkb:mBayarKB})[UI.modal]()}</div>`;el.hidden=false;
+  el.innerHTML=`<div class="dlg${['semua','kat','dobel','deviasi','tagih'].includes(UI.modal)?' lebar':''}" role="dialog" aria-modal="true">${({trx:mTrx,proyek:mProyek,scan:mScan,sandi:mSandi,kat:mKat,semua:mSemua,dobel:mDobel,deviasi:mDeviasi,tagih:mTagih,bayarkb:mBayarKB,ingatkb:mIngatKB})[UI.modal]()}</div>`;el.hidden=false;
 }
 /* ---------- rincian dari Ringkasan (dialog, tanpa pindah halaman) ---------- */
 function lingkupRk(){const sel=P(UI.rk)?UI.rk:'';return{sel,trx:sel?S.trx.filter(x=>x.proyek===sel):S.trx}}
@@ -846,19 +859,19 @@ function mKat(){
   </div>
   ${list.length?`<div class="cols c2">${!sel&&perP.length>1?`<section class="sub-p"><div class="label">Per proyek</div>${bar(perP,x=>esc(namaP(x)))}</section>`:''}<section class="sub-p"><div class="label">Dibayar ke (terbesar)</div>${bar(perH,esc)}</section></div>
   <div class="tbl"><table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Dibayar ke</th>${sel?'':'<th>Proyek</th>'}<th>Bank / metode</th><th>Input</th><th>Bukti</th><th class="r">Nominal</th></tr></thead><tbody>
-  ${list.map(t=>`<tr class="klik" data-act="edit-dari" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}</td><td><b>${esc(t.ket||'(tanpa keterangan)')}</b>${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}<td>${esc(t.bank||'-')}${t.ref?`<span class="sub">Ref ${esc(t.ref)}</span>`:''}</td><td style="text-transform:capitalize">${esc(NAMA[t.oleh]||t.oleh||'-')}</td><td>${t.bukti?'<span class="pill ws">Ada</span>':'<span class="pill off">Belum</span>'}</td><td class="r"><span class="minus">−${rp(t.nominal)}</span></td></tr>`).join('')}
+  ${list.map(t=>`<tr class="klik" data-act="edit-dari" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}</td><td><b>${esc(t.ket||'(tanpa keterangan)')}</b> ${kbPill(t)}${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}${kbBelum(t)&&!S.ro?`<span class="sub"><button type="button" class="btn soft btn-s" data-act="bayar-kb" data-ids="${t.id}">Bayar sekarang</button></span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}<td>${esc(t.bank||'-')}${t.ref?`<span class="sub">Ref ${esc(t.ref)}</span>`:''}</td><td style="text-transform:capitalize">${esc(NAMA[t.oleh]||t.oleh||'-')}</td><td>${t.bukti?'<span class="pill ws">Ada</span>':'<span class="pill off">Belum</span>'}</td><td class="r"><span class="minus">−${rp(t.nominal)}</span></td></tr>`).join('')}
   </tbody><tfoot><tr><td colspan="${sel?6:7}">${list.length} transaksi</td><td class="r">${rp(tot)}</td></tr></tfoot></table></div>
   <div class="small muted">Klik baris untuk melihat bukti, mengubah, atau menghapus. Setelah itu kamu kembali ke daftar ini.</div>`:'<div class="empty">Tidak ada transaksi di kategori ini.</div>'}`;
 }
 function dsList(){const {trx}=lingkupRk(),d=UI.ds,q=d.q.trim().toLowerCase();
-  return trx.filter(t=>(!d.jenis||t.jenis===d.jenis)&&(!d.bulan||t.tanggal.startsWith(d.bulan))&&(!d.kat||(t.kategori||'Lainnya')===d.kat)&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,t.catatan,t.oleh,namaP(t.proyek)].join(' ').toLowerCase().includes(q))).sort(urutTrx)}
+  return trx.filter(t=>(!d.jenis||t.jenis===d.jenis)&&cocokBayar(t,d.bayar)&&(!d.bulan||t.tanggal.startsWith(d.bulan))&&(!d.kat||(t.kategori||'Lainnya')===d.kat)&&(!q||[t.ket,t.pihak,t.kategori,t.bank,t.ref,t.catatan,t.oleh,namaP(t.proyek)].join(' ').toLowerCase().includes(q))).sort(urutTrx)}
 function dsBody(){
   const {sel}=lingkupRk(),list=dsList(),h=hitung(list);
   if(!list.length)return '<div class="empty">Tidak ada transaksi yang cocok.</div>';
   return `<div class="ds-sum"><span><i class="dot" style="background:var(--s1)"></i>Masuk <b class="num">${rp(h.m)}</b></span><span><i class="dot" style="background:var(--s2)"></i>Keluar <b class="num">${rp(h.k)}</b></span><span>Selisih <b class="num ${h.l>=0?'plus':'minus'}">${rpPlus(h.l)}</b></span><span class="muted">${list.length} transaksi</span></div>
   <div class="tbl"><table class="rinci"><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Dibayar ke / dari</th>${sel?'':'<th>Proyek</th>'}<th>Kategori</th><th>Bank / metode</th><th>Input</th><th>Bukti</th><th class="r">Nominal</th></tr></thead><tbody>
   ${list.map(t=>`<tr class="klik" data-act="edit-dari" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}${t.pada>1e12?`<span class="sub">diinput ${jam(t.pada)}</span>`:''}</td>
-    <td><b>${esc(t.ket||'(tanpa keterangan)')}</b>${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}
+    <td><b>${esc(t.ket||'(tanpa keterangan)')}</b> ${kbPill(t)}${t.catatan?`<span class="sub">${esc(t.catatan)}</span>`:''}${kbBelum(t)&&!S.ro?`<span class="sub"><button type="button" class="btn soft btn-s" data-act="bayar-kb" data-ids="${t.id}">Bayar sekarang</button></span>`:''}</td><td>${esc(t.pihak||'-')}</td>${sel?'':`<td>${pillP(t.proyek)}</td>`}
     <td>${esc(t.kategori||'-')}</td><td>${esc(t.bank||'-')}${t.ref?`<span class="sub">Ref ${esc(t.ref)}</span>`:''}</td><td style="text-transform:capitalize">${esc(NAMA[t.oleh]||t.oleh||'-')}${t.editOleh?`<span class="sub">diubah ${esc(NAMA[t.editOleh]||t.editOleh)}</span>`:''}</td>
     <td>${t.bukti?'<span class="pill ws">Ada</span>':'<span class="pill off">Belum</span>'}</td><td class="r"><span class="${t.jenis==='masuk'?'plus':'minus'}">${t.jenis==='masuk'?'+':'−'}${rp(t.nominal)}</span></td></tr>`).join('')}
   </tbody></table></div>`;
@@ -869,17 +882,23 @@ const kbBelum=t=>isKB(t)&&!t.tglBayar;
 const selisihHari=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
 function kbStatus(t){if(!isKB(t))return null;const hi=hariIni();
   if(t.tglBayar)return{k:'lunas',teks:'Lunas '+tgl(t.tglBayar)+(t.bankBayar?' · '+t.bankBayar:''),cls:'gr'};
-  if(!t.jatuhTempo)return{k:'belum',teks:'Belum dibayar',cls:'wr'};
+  if(!t.jatuhTempo){const u=selisihHari(t.tanggal,hi);return u>=30?{k:'telat',teks:'Belum dibayar · '+u+' hari',cls:'bad'}:{k:'belum',teks:'Belum dibayar',cls:'wr'}}
   const d=selisihHari(hi,t.jatuhTempo);
   if(d<0)return{k:'telat',teks:'Lewat '+(-d)+' hari',cls:'bad'};
   if(d===0)return{k:'hari',teks:'Jatuh tempo hari ini',cls:'bad'};
   return{k:'belum',teks:d<=7?d+' hari lagi':'Jatuh tempo '+tgl(t.jatuhTempo),cls:d<=7?'wr':'off'}}
+/* perlu segera dibayar: lewat / ≤3 hari ke jatuh tempo, atau tanpa jatuh tempo tapi notanya sudah ≥30 hari */
+const kbUrgen=t=>{if(!kbBelum(t))return false;const hi=hariIni();return t.jatuhTempo?selisihHari(hi,t.jatuhTempo)<=3:selisihHari(t.tanggal,hi)>=30};
+const kbTelat=t=>kbBelum(t)&&((t.jatuhTempo&&t.jatuhTempo<hariIni())||(!t.jatuhTempo&&selisihHari(t.tanggal,hariIni())>=30));
+/* saringan pembayaran yang dipakai di Transaksi dan Rincian transaksi */
+const OPSI_BAYAR=[['','Semua pembayaran'],['lunas','Sudah dibayar (bukan kontrabon)'],['kb','Semua kontrabon'],['kb-belum','Kontrabon belum dibayar'],['kb-urgen','Kontrabon perlu segera dibayar'],['kb-lunas','Kontrabon sudah lunas']];
+const cocokBayar=(t,v)=>!v||(v==='lunas'?!isKB(t):v==='kb'?isKB(t):v==='kb-belum'?kbBelum(t):v==='kb-urgen'?kbUrgen(t):v==='kb-lunas'?isKB(t)&&!!t.tglBayar:true);
 const kbPill=t=>{const s=kbStatus(t);return s?`<span class="pill ${s.cls}">Kontrabon · ${esc(s.teks)}</span>`:''};
 function kbRingkas(list){const b=list.filter(kbBelum),hi=hariIni(),tel=b.filter(t=>t.jatuhTempo&&t.jatuhTempo<=hi),dek=b.filter(t=>t.jatuhTempo&&t.jatuhTempo>hi&&selisihHari(hi,t.jatuhTempo)<=7),l=list.filter(t=>isKB(t)&&t.tglBayar);
   const sum=a=>a.reduce((x,t)=>x+t.nominal,0);return{belum:sum(b),nb:b.length,toko:new Set(b.map(t=>(t.pihak||'').trim().toLowerCase()||'?')).size,telat:sum(tel),nt:tel.length,dekat:sum(dek),nd:dek.length,lunas:sum(l),nl:l.length}}
 const kunciToko=t=>(t.pihak||'').trim().toUpperCase()||'(TANPA NAMA TOKO)';
 function kbList(){const f=UI.kb,q=f.q.trim().toLowerCase();
-  return S.trx.filter(t=>isKB(t)&&(!f.proyek||t.proyek===f.proyek)&&(f.status==='semua'||(f.status==='lunas'?!!t.tglBayar:!t.tglBayar))&&(!f.toko||kunciToko(t)===f.toko)&&(!q||[t.ket,t.pihak,t.ref,t.catatan,namaP(t.proyek)].join(' ').toLowerCase().includes(q)))
+  return S.trx.filter(t=>isKB(t)&&(!f.proyek||t.proyek===f.proyek)&&(f.status==='semua'||(f.status==='lunas'?!!t.tglBayar:f.status==='urgen'?kbUrgen(t):!t.tglBayar))&&(!f.toko||kunciToko(t)===f.toko)&&(!q||[t.ket,t.pihak,t.ref,t.catatan,namaP(t.proyek)].join(' ').toLowerCase().includes(q)))
     .sort((a,b)=>(a.tglBayar?1:0)-(b.tglBayar?1:0)||(a.jatuhTempo||'9999').localeCompare(b.jatuhTempo||'9999')||a.tanggal.localeCompare(b.tanggal))}
 function vKontrabon(){
   const f=UI.kb,all=S.trx.filter(t=>isKB(t)&&(!f.proyek||t.proyek===f.proyek)),r=kbRingkas(all),list=kbList(),hi=hariIni();
@@ -900,13 +919,21 @@ function vKontrabon(){
     <label class="f">Cari<input type="search" id="kb-q" placeholder="Toko, keterangan, no. nota" value="${esc(f.q)}"></label>
     <label class="f">Proyek<select data-kb="proyek">${opsiProyek(f.proyek,'Semua proyek')}</select></label>
     <label class="f">Toko<select data-kb="toko">${opsi([['','Semua toko'],...[...new Set(S.trx.filter(isKB).map(kunciToko))].sort().map(k=>[k,k])],f.toko)}</select></label>
-    <label class="f">Status<select data-kb="status">${opsi([['belum','Belum dibayar'],['lunas','Sudah dibayar'],['semua','Semua']],f.status)}</select></label>
+    <label class="f">Status<select data-kb="status">${opsi([['belum','Belum dibayar'],['urgen','Perlu segera dibayar'],['lunas','Sudah dibayar'],['semua','Semua']],f.status)}</select></label>
   </div>
   ${list.length?`<div class="tbl"><table><thead><tr><th>Tgl nota</th><th>Keterangan</th><th>Proyek</th><th>Jatuh tempo</th><th class="r">Umur</th><th class="r">Nominal</th><th>Status</th><th></th></tr></thead><tbody>
     ${list.map(t=>{const s=kbStatus(t);return `<tr class="klik" data-act="edit" data-id="${t.id}"><td class="num" style="white-space:nowrap">${tgl(t.tanggal)}</td><td><b>${esc(t.ket||'(tanpa keterangan)')}</b><span class="sub">${esc(kunciToko(t))}${t.ref?' · Nota '+esc(t.ref):''} · oleh ${esc(NAMA[t.oleh]||t.oleh||'-')}</span></td><td>${pillP(t.proyek)}</td><td style="white-space:nowrap">${t.jatuhTempo?tgl(t.jatuhTempo):'-'}</td><td class="r">${t.tglBayar?selisihHari(t.tanggal,t.tglBayar)+' hr':selisihHari(t.tanggal,hi)+' hr'}</td><td class="r"><span class="minus">−${rp(t.nominal)}</span></td><td><span class="pill ${s.cls}">${esc(s.teks)}</span></td><td>${!t.tglBayar&&!S.ro?`<button class="btn soft" data-act="bayar-kb" data-ids="${t.id}">Bayar</button>`:''}</td></tr>`}).join('')}
     </tbody><tfoot><tr><td colspan="5">${list.length} nota</td><td class="r">${rp(list.reduce((a,t)=>a+t.nominal,0))}</td><td colspan="2"></td></tr></tfoot></table></div><div class="small muted">Klik baris untuk mengubah, melihat foto nota, atau membatalkan pelunasan.</div>`
     :`<div class="empty">${S.trx.some(isKB)?'Tidak ada kontrabon yang cocok dengan saringan ini.':'Belum ada kontrabon. Tekan "Catat kontrabon", atau saat Tambah transaksi pilih Pembayaran: Kontrabon.'}</div>`}</section>`;
 }
+function mIngatKB(){const u=S.trx.filter(kbUrgen).sort((a,b)=>(a.jatuhTempo||a.tanggal).localeCompare(b.jatuhTempo||b.tanggal)),sum=u.reduce((x,t)=>x+t.nominal,0);
+  return `${kepalaDlg('Pengingat kontrabon')}
+  <div class="small muted" style="margin-top:-8px">${u.length} nota perlu segera dibayar, total <b>${rp(sum)}</b>. Pengingat ini muncul sekali sehari selama masih ada kontrabon yang lewat atau mendekati jatuh tempo.</div>
+  <div class="ak-list">${u.map(t=>{const s=kbStatus(t);return `<div class="ak"><span class="grow"><b>${esc(kunciToko(t))}</b> · ${esc(t.ket||'(tanpa keterangan)')}<span class="sub">Nota ${tgl(t.tanggal)}${t.ref?' · '+esc(t.ref):''} · ${esc(namaP(t.proyek))} · <span class="${kbTelat(t)?'minus':''}">${t.jatuhTempo?esc(s.teks):'tanpa jatuh tempo, sudah '+selisihHari(t.tanggal,hariIni())+' hari'}</span></span></span><b class="num">${rp(t.nominal)}</b>${S.ro?'':`<button type="button" class="btn soft" data-act="bayar-kb" data-ids="${t.id}">Bayar</button>`}</div>`}).join('')}</div>
+  <div class="row"><button class="btn pri" data-act="kb-urgen">Buka tab Kontrabon</button><button class="btn" data-act="tutup">Ingatkan lagi besok</button></div>`}
+function cekIngatKB(){if(UI.ingatSudah||!S.siapT||!S.siapP||!UI.user||UI.modal)return;UI.ingatSudah=true;
+  if(!S.trx.some(kbUrgen))return;let k='';try{k=localStorage.getItem('nw28-keu-ingat-kb')||''}catch(e){}
+  if(k===hariIni())return;try{localStorage.setItem('nw28-keu-ingat-kb',hariIni())}catch(e){}buka('ingatkb')}
 function mBayarKB(){const b=UI.bkb,list=b.ids.map(id=>S.trx.find(t=>t.id===id)).filter(Boolean),tot=list.filter(t=>b.pilih.has(t.id)).reduce((a,t)=>a+t.nominal,0);
   return `${kepalaDlg(list.length>1?'Bayar kontrabon '+esc(kunciToko(list[0])):'Bayar kontrabon')}
   <div class="small muted" style="margin-top:-8px">Nota yang dicentang ditandai lunas. Nominal dan tanggal notanya tidak berubah, jadi biaya proyek tetap di bulan notanya.</div>
@@ -961,6 +988,7 @@ function mSemua(){
     <label class="f">Jenis<select data-ds="jenis">${opsi([['','Masuk dan keluar'],['masuk','Pemasukan'],['keluar','Pengeluaran']],d.jenis)}</select></label>
     <label class="f">Bulan<select data-ds="bulan">${opsi([['','Semua bulan'],...bl.map(b=>[b,bln(b)])],d.bulan)}</select></label>
     <label class="f">Kategori<select data-ds="kat">${opsi([['','Semua kategori'],...kt],d.kat)}</select></label>
+    <label class="f">Pembayaran<select data-ds="bayar">${opsi(OPSI_BAYAR,d.bayar)}</select></label>
   </div>
   <div id="ds-body">${dsBody()}</div>`;
 }
@@ -1262,19 +1290,20 @@ document.addEventListener('click',async ev=>{
     case 'tutup':tutup();break;
     case 'dobel':buka('dobel');break;
     case 'tambah-kb':UI.edit={jenis:'keluar',kontrabon:true,nominal:0,tanggal:hariIni(),proyek:UI.kb.proyek||'',kategori:KAT.keluar[0],pihak:'',bank:'',ket:'',ref:'',jatuhTempo:''};buka('trx');break;
-    case 'bayar-kb':{const ids=b.dataset.ids.split(',').filter(x=>S.trx.some(t=>t.id===x&&kbBelum(t)));if(ids.length){UI.bkb={ids,pilih:new Set(ids),tgl:hariIni(),bank:'BCA'};buka('bayarkb')}break}
+    case 'bayar-kb':{if(['semua','ingatkb','kat'].includes(UI.modal))UI.balik=UI.modal;const ids=b.dataset.ids.split(',').filter(x=>S.trx.some(t=>t.id===x&&kbBelum(t)));if(ids.length){UI.bkb={ids,pilih:new Set(ids),tgl:hariIni(),bank:'BCA'};buka('bayarkb')}break}
     case 'kb-lunas':lunasiKB();break;
+    case 'kb-urgen':UI.kb={proyek:'',toko:'',status:'belum',q:''};UI.tab='kontrabon';if(UI.modal)tutup();render();window.scrollTo(0,0);break;
     case 'kb-toko':UI.kb.toko=b.dataset.k;UI.kb.status='semua';render();break;
     case 'rab-tambah':bacaProyek();UI.edit.rabEdit.push({nama:'',nilai:0,skema:''});renderModal();{const x=document.getElementById('r-nama-'+(UI.edit.rabEdit.length-1));if(x)x.focus()}break;
     case 'rab-hapus':bacaProyek();if(UI.edit.rabEdit.length>1)UI.edit.rabEdit.splice(+b.dataset.i,1);renderModal();break;
-    case 'rk-masuk':UI.ds={q:'',jenis:'masuk',bulan:'',kat:''};buka('semua');break;
-    case 'rk-keluar':UI.ds={q:'',jenis:'keluar',bulan:'',kat:''};buka('semua');break;
+    case 'rk-masuk':UI.ds={q:'',jenis:'masuk',bulan:'',kat:'',bayar:''};buka('semua');break;
+    case 'rk-keluar':UI.ds={q:'',jenis:'keluar',bulan:'',kat:'',bayar:''};buka('semua');break;
     case 'rk-dev':buka('deviasi');break;
     case 'rk-tagih':buka('tagih');break;
     case 'bukan-dobel':dobelTutup.add(b.dataset.k);try{localStorage.setItem('nw28-keu-bukan-dobel',JSON.stringify([...dobelTutup]))}catch(e){}renderModal();render();break;
     case 'buang-foto':bacaTrx();if(UI.edit.fileUrl)URL.revokeObjectURL(UI.edit.fileUrl);UI.edit.file=null;UI.edit.fileUrl='';renderModal();break;
     case 'kat':UI.dk={kat:b.dataset.kat};buka('kat');break;
-    case 'semua':UI.ds={q:'',jenis:'',bulan:'',kat:''};buka('semua');break;
+    case 'semua':UI.ds={q:'',jenis:'',bulan:'',kat:'',bayar:''};buka('semua');break;
     case 'edit-dari':{const t=S.trx.find(x=>x.id===id);if(t){UI.balik=UI.modal;UI.edit={...t};UI.bukti='';UI.modal='';buka('trx')}break}
     case 'log-ulang':S.log=null;render();break;
     case 'log-lagi':b.disabled=true;muatLog(true);break;
